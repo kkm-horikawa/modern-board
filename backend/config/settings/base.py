@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "api",
     # Django REST Framework
     "rest_framework",
+    # API documentation
+    "drf_spectacular",
     # CORS headers
     "corsheaders",
     # Wagtail CMS (optional - for future use)
@@ -211,6 +213,17 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# drf-spectacular settings
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Modern Board API",
+    "DESCRIPTION": "Anonymous bulletin board API with modern features",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
 }
 
 # CORS settings (for frontend communication)

@@ -1,11 +1,17 @@
 """URL routing for API endpoints."""
 
-from rest_framework.routers import DefaultRouter
+from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
-# Create a router for ViewSets
-router = DefaultRouter()
-
-# Register ViewSets here
-# router.register(r'resource', ResourceViewSet)
-
-urlpatterns = router.urls
+urlpatterns = [
+    # API v1
+    path("v1/", include("api.v1.urls")),
+    # API documentation
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+]

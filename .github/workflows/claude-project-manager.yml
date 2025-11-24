@@ -82,33 +82,100 @@ jobs:
 
       - name: Notify Slack on Success
         if: success()
-        uses: slackapi/slack-github-action@v1
-        with:
-          channel-id: 'C09UD9L8AT1'
-          slack-message: |
-            ✅ *Claude Project Manager - 実行成功*
-
-            *リポジトリ:* ${{ github.repository }}
-            *ワークフロー:* ${{ github.workflow }}
-            *Issue作成:* #${{ env.ISSUE_NUMBER }}
-            *実行時刻:* ${{ github.event.repository.updated_at }}
-
-            <${{ github.server_url }}/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}|Issue #${{ env.ISSUE_NUMBER }}を確認>
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "✅ *Claude Project Manager - 実行成功*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *Claude Project Manager - 実行成功*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*リポジトリ:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*ワークフロー:*\n${{ github.workflow }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Issue作成:*\n#${{ env.ISSUE_NUMBER }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*実行ID:*\n${{ github.run_id }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Issue #${{ env.ISSUE_NUMBER }}を確認"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}"
+                    }
+                  ]
+                }
+              ]
+            }'
 
       - name: Notify Slack on Failure
         if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          channel-id: 'C09UD9L8AT1'
-          slack-message: |
-            ❌ *Claude Project Manager - 実行失敗*
-
-            *リポジトリ:* ${{ github.repository }}
-            *ワークフロー:* ${{ github.workflow }}
-            *実行時刻:* ${{ github.event.repository.updated_at }}
-
-            <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|ワークフロー実行ログを確認>
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "❌ *Claude Project Manager - 実行失敗*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *Claude Project Manager - 実行失敗*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*リポジトリ:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*ワークフロー:*\n${{ github.workflow }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*実行ID:*\n${{ github.run_id }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "ワークフロー実行ログを確認"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }'

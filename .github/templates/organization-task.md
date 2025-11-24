@@ -1,135 +1,38 @@
 ## 🧹 プロジェクト整理タスク
 
-**目的：Issue、ブランチ、マイルストーン、プロジェクトボードを整理する**
+**今すぐ実行：**
+1. 30日以上更新なしのIssueをクローズ
+2. 完了したマイルストーンをクローズ
+3. オープンなIssue/PRをプロジェクトボードに追加
+4. このIssueをクローズ
+
+**禁止：**
+- ❌ 「推奨」だけで終わる
+- ❌ 分析だけで実行しない
 
 ---
 
-## 📋 実行手順
-
-### 1. Issueの整理
+## 実行
 
 ```bash
-# 古いIssueを確認（30日以上更新なし）
-gh issue list --state open --json number,title,updatedAt --jq '.[] | select((.updatedAt | fromdateiso8601) < (now - 2592000)) | {number, title, updatedAt}'
+# 1. 古いIssueをクローズ
+gh issue list --state open --json number,updatedAt \
+  --jq '.[] | select((.updatedAt | fromdateiso8601) < (now - 2592000)) | .number' \
+  | xargs -I{} gh issue close {} --comment "30日以上更新なしのためクローズ"
 
-# 各Issueについて：
-# - まだ有効か確認
-# - 重複していないか確認
-# - 適切なラベルが付いているか確認
-# - 優先度は正しいか確認
+# 2. 完了したマイルストーンをクローズ
+gh api repos/:owner/:repo/milestones \
+  --jq '.[] | select(.state=="open" and .open_issues==0) | .number' \
+  | xargs -I{} gh api repos/:owner/:repo/milestones/{} -X PATCH -f state=closed
 
-# 不要なIssueをクローズ
-gh issue close {ISSUE_NUMBER} --comment "30日以上更新がないためクローズします。必要であれば再オープンしてください。"
+# 3. プロジェクトボードに追加
+PROJ=$(gh project list --owner {OWNER} --format json | jq -r '.[0].number')
+gh issue list --state open --json number \
+  | jq -r '.[].number' \
+  | xargs -I{} gh project item-add $PROJ --owner {OWNER} --url https://github.com/{OWNER}/{REPO}/issues/{}
 
-# ラベルを更新
-gh issue edit {ISSUE_NUMBER} --add-label "priority:low"
-gh issue edit {ISSUE_NUMBER} --remove-label "priority:high"
-
-# 重複をクローズ
-gh issue close {DUPLICATE_NUMBER} --comment "#{ORIGINAL_NUMBER} と重複のためクローズします。"
+# 4. このIssueをクローズ
+gh issue close {THIS_ISSUE} --comment "完了"
 ```
 
-### 2. マイルストーンの整理
-
-```bash
-# マイルストーンの進捗を確認
-gh api repos/:owner/:repo/milestones --jq '.[] | select(.state=="open") | {number, title, open_issues, closed_issues, due_on}'
-
-# 完了したマイルストーンをクローズ
-# (open_issues == 0の場合)
-gh api repos/:owner/:repo/milestones/{MILESTONE_NUMBER} -X PATCH -f state=closed
-
-# マイルストーン完了報告Issueを作成
-gh issue create \
-  --title "🎉 マイルストーン「{タイトル}」完了" \
-  --body "## 概要
-
-マイルストーン「{タイトル}」が完了しました！
-
-## 完了したIssue
-
-- #{番号}: {タイトル}
-- ...
-
-## 次のマイルストーン
-
-{次のマイルストーンの提案}" \
-  --label "milestone,celebration"
-```
-
-### 3. プロジェクトボードの更新
-
-```bash
-# プロジェクトを確認
-gh project list --owner {OWNER}
-
-# オープンなIssue/PRをボードに追加
-gh issue list --state open --json number | jq -r '.[].number' | while read issue; do
-  # プロジェクトに追加（まだ追加されていない場合）
-  gh project item-add {PROJECT_NUMBER} --owner {OWNER} --url https://github.com/{OWNER}/{REPO}/issues/$issue
-done
-
-# クローズされたアイテムをアーカイブ
-# (手動確認を推奨)
-```
-
-### 4. ラベルの整理
-
-```bash
-# 使われていないラベルを確認
-gh label list --json name,description | jq -r '.[] | .name' | while read label; do
-  COUNT=$(gh issue list --label "$label" --state all --json number | jq 'length')
-  if [ "$COUNT" -eq 0 ]; then
-    echo "未使用ラベル: $label"
-  fi
-done
-
-# 必要に応じてラベルを削除
-# gh label delete "{LABEL_NAME}"
-```
-
----
-
-## 📝 完了報告
-
-以下の形式で報告してください：
-
-### 整理したIssue
-
-- クローズしたIssue: {数}件
-- ラベル更新: {数}件
-- 重複をクローズ: {数}件
-
-
-### マイルストーン
-
-- 完了したマイルストーン: {数}件
-- 進行中のマイルストーン: {数}件
-- 完了率: {%}
-
-### プロジェクトボード
-
-- 追加したアイテム: {数}件
-- 更新したアイテム: {数}件
-
----
-
-## 🎯 完了基準
-
-- [ ] 30日以上更新のないIssueを確認・整理
-- [ ] マイルストーンの進捗を確認・完了処理
-- [ ] プロジェクトボードを更新
-- [ ] ラベルの整理
-- [ ] 整理結果を報告
-
-**完了したら、このIssueをクローズしてください。**
-
----
-
-## ⚠️ 重要
-
-- **慎重に判断してください**（間違ってクローズしない）
-- **重要なIssueは保持してください**
-- **マイルストーン完了は正確に確認してください**
-- **プロジェクトボードは最新の状態を保ってください**
-- **未使用ラベルは慎重に削除してください**
+**「推奨」ではなく、必ず実行してください。**

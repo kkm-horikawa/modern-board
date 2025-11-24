@@ -29,25 +29,7 @@ gh issue edit {ISSUE_NUMBER} --remove-label "priority:high"
 gh issue close {DUPLICATE_NUMBER} --comment "#{ORIGINAL_NUMBER} と重複のためクローズします。"
 ```
 
-### 2. ブランチの整理
-
-```bash
-# マージ済みのブランチを確認
-gh api repos/:owner/:repo/branches --jq '.[] | select(.protected == false) | .name' | while read branch; do
-  # PRがマージ済みか確認
-  PR_STATE=$(gh pr list --head "$branch" --state all --json state,mergedAt --jq '.[0] | select(.mergedAt != null) | .state')
-
-  if [ "$PR_STATE" = "MERGED" ]; then
-    echo "削除候補: $branch"
-    # git push origin --delete "$branch"
-  fi
-done
-
-# 古いブランチを確認（60日以上更新なし）
-# 手動での削除を推奨するコメントを残す
-```
-
-### 3. マイルストーンの整理
+### 2. マイルストーンの整理
 
 ```bash
 # マイルストーンの進捗を確認
@@ -75,7 +57,7 @@ gh issue create \
   --label "milestone,celebration"
 ```
 
-### 4. プロジェクトボードの更新
+### 3. プロジェクトボードの更新
 
 ```bash
 # プロジェクトを確認
@@ -91,7 +73,7 @@ done
 # (手動確認を推奨)
 ```
 
-### 5. ラベルの整理
+### 4. ラベルの整理
 
 ```bash
 # 使われていないラベルを確認
@@ -118,10 +100,6 @@ done
 - ラベル更新: {数}件
 - 重複をクローズ: {数}件
 
-### 整理したブランチ
-
-- 削除推奨ブランチ: {数}件
-- マージ済みブランチ: {数}件
 
 ### マイルストーン
 
@@ -139,9 +117,9 @@ done
 ## 🎯 完了基準
 
 - [ ] 30日以上更新のないIssueを確認・整理
-- [ ] マージ済みブランチを確認
 - [ ] マイルストーンの進捗を確認・完了処理
 - [ ] プロジェクトボードを更新
+- [ ] ラベルの整理
 - [ ] 整理結果を報告
 
 **完了したら、このIssueをクローズしてください。**
@@ -151,6 +129,7 @@ done
 ## ⚠️ 重要
 
 - **慎重に判断してください**（間違ってクローズしない）
-- **重要なIssue/ブランチは保持してください**
+- **重要なIssueは保持してください**
 - **マイルストーン完了は正確に確認してください**
 - **プロジェクトボードは最新の状態を保ってください**
+- **未使用ラベルは慎重に削除してください**

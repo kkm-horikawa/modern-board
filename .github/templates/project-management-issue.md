@@ -2,7 +2,157 @@
 
 このIssueでは、プロジェクト全体の状況を分析し、次に取るべきアクションを決定して実行してください。
 
-### 📊 実行すべき分析
+---
+
+## 🔧 Step 0: 初回セットアップチェック（最優先）
+
+**⚠️ 最初に必ず実行**: プロジェクトが初期セットアップ済みかチェックしてください。
+
+### チェック項目
+
+1. **GitHubプロジェクトの存在確認**
+```bash
+# リポジトリにリンクされたプロジェクトを確認
+gh project list --owner @me --format json | jq '.projects[] | select(.title | contains("Modern Board"))'
+```
+
+2. **マイルストーンの存在確認**
+```bash
+# マイルストーン一覧を取得
+gh api repos/:owner/:repo/milestones | jq 'length'
+```
+
+3. **基本ラベルの存在確認**
+```bash
+# ラベル一覧を取得（特にpriority:*系）
+gh label list | grep "priority:"
+```
+
+### 初回セットアップが必要な場合
+
+**判断基準**:
+- プロジェクトが存在しない、または
+- マイルストーンが5件未満（マイルストーン0-4が揃っていない）、または
+- 基本ラベルが不足している
+
+**実行手順**:
+
+#### 1. プロジェクト要件を読み取る
+```bash
+# Modern Board専用のプロジェクトセットアップファイルを確認
+cat .github/templates/project-setup.md
+```
+
+#### 2. GitHubプロジェクトを作成（存在しない場合）
+```bash
+# Modern Boardプロジェクトを作成
+gh project create --owner @me --title "Modern Board" --body "掲示板アプリケーション - React + FastAPI + PostgreSQL"
+
+# 作成したプロジェクト番号を取得
+PROJECT_NUMBER=$(gh project list --owner @me --format json | jq -r '.projects[] | select(.title == "Modern Board") | .number')
+
+# プロジェクトをリポジトリにリンク
+gh project link $PROJECT_NUMBER --owner @me
+```
+
+#### 3. マイルストーンを作成（不足している場合）
+```bash
+# project-setup.mdに記載されたModern Board専用のマイルストーンを作成
+gh api repos/:owner/:repo/milestones -f title="マイルストーン0: 自動化基盤構築" -f description="Claude完全自律開発システムの構築と動作確認"
+
+gh api repos/:owner/:repo/milestones -f title="マイルストーン1: MVP - ローカル動作確認" -f description="最小限の機能を持つ掲示板アプリのローカル動作確認"
+
+gh api repos/:owner/:repo/milestones -f title="マイルストーン2: フル機能実装" -f description="掲示板として必要な全機能の実装"
+
+gh api repos/:owner/:repo/milestones -f title="マイルストーン3: デプロイと公開" -f description="プロダクション環境へのデプロイと公開"
+
+gh api repos/:owner/:repo/milestones -f title="マイルストーン4: 運用とメンテナンス" -f description="運用開始後の監視、改善、機能追加"
+```
+
+#### 4. 基本ラベルを作成（不足している場合）
+```bash
+# project-setup.mdに記載された推奨ラベルを作成（既存の場合はスキップされる）
+# 優先度ラベル
+gh label create "priority:critical" --description "最優先で対応が必要" --color "d73a4a" 2>/dev/null || true
+gh label create "priority:high" --description "高優先度" --color "ff9800" 2>/dev/null || true
+gh label create "priority:medium" --description "中優先度" --color "ffeb3b" 2>/dev/null || true
+gh label create "priority:low" --description "低優先度" --color "4caf50" 2>/dev/null || true
+
+# カテゴリラベル
+gh label create "feature" --description "新機能" --color "1e88e5" 2>/dev/null || true
+gh label create "enhancement" --description "既存機能の改善" --color "42a5f5" 2>/dev/null || true
+gh label create "bug" --description "バグ修正" --color "f44336" 2>/dev/null || true
+gh label create "documentation" --description "ドキュメント" --color "9c27b0" 2>/dev/null || true
+gh label create "testing" --description "テスト関連" --color "673ab7" 2>/dev/null || true
+gh label create "infrastructure" --description "インフラ・CI/CD" --color "607d8b" 2>/dev/null || true
+gh label create "design" --description "設計・アーキテクチャ" --color "ff5722" 2>/dev/null || true
+gh label create "setup" --description "セットアップ関連" --color "795548" 2>/dev/null || true
+gh label create "deployment" --description "デプロイ関連" --color "8bc34a" 2>/dev/null || true
+gh label create "database" --description "データベース関連" --color "00bcd4" 2>/dev/null || true
+gh label create "security" --description "セキュリティ関連" --color "e91e63" 2>/dev/null || true
+gh label create "performance" --description "パフォーマンス関連" --color "3f51b5" 2>/dev/null || true
+gh label create "monitoring" --description "監視関連" --color "009688" 2>/dev/null || true
+gh label create "frontend" --description "フロントエンド関連" --color "61dafb" 2>/dev/null || true
+gh label create "backend" --description "バックエンド関連" --color "009688" 2>/dev/null || true
+```
+
+#### 5. 初期Issueを作成（該当マイルストーンにIssueがない場合）
+```bash
+# project-setup.mdに記載された各マイルストーンの初期Issueを作成
+# 既存のIssueを確認してから作成
+
+# マイルストーン番号を取得
+MILESTONE_0=$(gh api repos/:owner/:repo/milestones | jq -r '.[] | select(.title | contains("マイルストーン0")) | .number')
+MILESTONE_1=$(gh api repos/:owner/:repo/milestones | jq -r '.[] | select(.title | contains("マイルストーン1")) | .number')
+
+# マイルストーン0の初期Issue（まだIssueがない場合のみ）
+if [ $(gh issue list --milestone $MILESTONE_0 --json number | jq 'length') -eq 0 ]; then
+  gh issue create \
+    --title "GitHub Actions ワークフローのセットアップ" \
+    --body "claude-project-manager.yml、claude.yml、Slack通知の設定" \
+    --label "setup,priority:critical,infrastructure" \
+    --milestone $MILESTONE_0
+
+  gh issue create \
+    --title "プロジェクト管理テンプレートの作成" \
+    --body "project-management-issue.mdなどのテンプレート作成" \
+    --label "setup,priority:high,documentation" \
+    --milestone $MILESTONE_0
+fi
+
+# マイルストーン1の初期Issue（例）
+if [ $(gh issue list --milestone $MILESTONE_1 --json number | jq 'length') -eq 0 ]; then
+  gh issue create \
+    --title "FE-001: フロントエンドプロジェクトのセットアップ" \
+    --body "React + TypeScript + Vite のセットアップ、アーキテクチャ設計" \
+    --label "setup,priority:high,frontend" \
+    --milestone $MILESTONE_1
+
+  # 他のIssueも同様に作成...
+fi
+```
+
+#### 6. 初期セットアップ完了を報告
+
+このIssueに以下を報告してください：
+```
+✅ 初期セットアップが完了しました
+
+**作成されたリソース:**
+- GitHubプロジェクト: Modern Board (#番号)
+- マイルストーン: 5件（マイルストーン0-4）
+- ラベル: X件
+- 初期Issue: Y件
+
+**次のステップ:**
+通常のプロジェクト管理タスクを実行します。
+```
+
+---
+
+## 📊 実行すべき分析
+
+**注意**: 初回セットアップが完了している場合のみ、以下の分析を実行してください。
 
 #### 1. 既存PRのレビュー確認（Draft PR含む）
 - [ ] `gh pr list --state open` でオープンなPRを確認（**Draft PR含む**）

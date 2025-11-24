@@ -30,7 +30,17 @@ gh label list | grep "priority:"
 ### 1. PR確認
 ```bash
 gh pr list --state open  # Draft PRがあるIssueには着手しない
+
+# PRが存在しないブランチを検出
+git fetch origin
+git branch -r | grep -v "HEAD\|master\|main\|develop" | while read branch; do
+  branch_name=${branch#origin/}
+  if ! gh pr list --state all --head $branch_name --json number | jq -e '. | length > 0' > /dev/null; then
+    echo "PR未作成: $branch_name"
+  fi
+done
 ```
+- **PR未作成のブランチがあれば、PRを作成**
 - レビューが必要なPRを特定してレビュー実行
 - レビュー済み・CI通過済みのPRは `gh pr merge` でマージ
 
@@ -65,6 +75,7 @@ gh run list --limit 10
 4. **Low**: ドキュメント改善
 
 **実行可能なアクション:**
+- **PR未作成のブランチのPR作成**（実装完了しているがPRがない場合）
 - Issue実装（Draft PRが存在しないことを確認後）
 - PRレビュー（Approve/Request Changes/Comment）
 - PRマージ（レビュー済み・CI通過済み）

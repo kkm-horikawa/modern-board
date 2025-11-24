@@ -30,7 +30,8 @@ jobs:
             --title "DAILY-${DATE}: プロジェクト管理とタスク優先順位付け" \
             --body-file .github/templates/project-management-issue.md \
             --label "project-management,automated,priority:critical" \
-            --milestone "マイルストーン0: 自動化基盤構築")
+            --milestone "マイルストーン0: 自動化基盤構築" \
+            --assignee @me)
 
           # URLからIssue番号を抽出
           ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')

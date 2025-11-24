@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# GitHub Labels Setup Script
+# このスクリプトは、Claude自動化ワークフローに必要なラベルを作成します
+
+set -e
+
+echo "🏷️  GitHub Labelsをセットアップします..."
+
+# ラベルが存在しない場合のみ作成
+create_label_if_not_exists() {
+  local name=$1
+  local description=$2
+  local color=$3
+
+  if gh label list --json name --jq '.[].name' | grep -q "^${name}$"; then
+    echo "✓ ラベル '${name}' は既に存在します"
+  else
+    echo "+ ラベル '${name}' を作成中..."
+    gh label create "${name}" --description "${description}" --color "${color}"
+  fi
+}
+
+# 自動化関連ラベル
+create_label_if_not_exists "automation" "自動化によって作成されたIssue/PR" "0E8A16"
+create_label_if_not_exists "implementation" "機能実装タスク" "1D76DB"
+create_label_if_not_exists "review" "レビュータスク" "FBCA04"
+create_label_if_not_exists "issue-management" "Issue管理タスク" "D93F0B"
+create_label_if_not_exists "organization" "プロジェクト整理タスク" "0052CC"
+create_label_if_not_exists "cleanup" "ブランチ整理タスク" "5319E7"
+
+# 優先度ラベル
+create_label_if_not_exists "priority:critical" "最優先で対応が必要" "B60205"
+create_label_if_not_exists "priority:high" "優先度が高い" "D93F0B"
+create_label_if_not_exists "priority:medium" "通常の優先度" "FBCA04"
+create_label_if_not_exists "priority:low" "優先度が低い" "0E8A16"
+
+# その他の有用なラベル
+create_label_if_not_exists "bug" "バグ報告" "D73A4A"
+create_label_if_not_exists "enhancement" "新機能または改善" "A2EEEF"
+create_label_if_not_exists "question" "確認が必要な質問" "D876E3"
+create_label_if_not_exists "testing" "テスト関連" "BFD4F2"
+create_label_if_not_exists "documentation" "ドキュメント関連" "0075CA"
+create_label_if_not_exists "milestone" "マイルストーン完了" "EDEDED"
+create_label_if_not_exists "celebration" "祝賀イベント" "FFD700"
+
+echo ""
+echo "✅ ラベルのセットアップが完了しました！"

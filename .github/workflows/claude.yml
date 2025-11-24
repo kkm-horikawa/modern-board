@@ -46,3 +46,92 @@ jobs:
           # Allow gh commands for full automation
           claude_args: '--allowed-tools "Bash(gh:*)"'
 
+      - name: Get Claude's Response
+        if: always()
+        id: get_response
+        run: |
+          # Issueの最新コメントを取得（Claudeが書いたもの）
+          if [ "${{ github.event_name }}" = "issue_comment" ] || [ "${{ github.event_name }}" = "issues" ]; then
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+
+            # 最新のコメントを取得（最大3000文字）
+            COMMENT=$(gh issue view $ISSUE_NUMBER --comments --json comments --jq '.comments[-1].body' | head -c 3000)
+
+            # 改行とダブルクォートをエスケープ
+            COMMENT_ESCAPED=$(echo "$COMMENT" | jq -Rs .)
+
+            echo "comment=$COMMENT_ESCAPED" >> $GITHUB_OUTPUT
+            echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack with Claude's Response
+        if: always() && steps.get_response.outputs.comment != ''
+        run: |
+          STATUS="${{ job.status }}"
+          STATUS_ICON="${{ job.status == 'success' && '✅' || '❌' }}"
+
+          # コメント内容を取得
+          COMMENT_TEXT=${{ steps.get_response.outputs.comment }}
+
+          # Slackペイロードを構築
+          cat > /tmp/slack-payload.json << ENDOFFILE
+          {
+            "text": "${STATUS_ICON} Claude実行完了 - Issue #${{ steps.get_response.outputs.issue_number }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${STATUS_ICON} *Claude実行完了*"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*リポジトリ:*\n${{ github.repository }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Issue:*\n#${{ steps.get_response.outputs.issue_number }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*ステータス:*\n$STATUS"
+                  }
+                ]
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*実行内容:*\n${COMMENT_TEXT}"
+                }
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Issue #${{ steps.get_response.outputs.issue_number }}を確認"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/issues/${{ steps.get_response.outputs.issue_number }}"
+                  }
+                ]
+              }
+            ]
+          }
+          ENDOFFILE
+
+          # Slackに送信
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d @/tmp/slack-payload.json
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+

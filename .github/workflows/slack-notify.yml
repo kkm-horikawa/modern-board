@@ -1,0 +1,142 @@
+name: Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      status:
+        required: true
+        type: string
+        description: 'success or failure'
+      title:
+        required: true
+        type: string
+        description: 'Notification title'
+      message:
+        required: false
+        type: string
+        description: 'Additional message'
+      issue_number:
+        required: false
+        type: string
+        description: 'Issue number for link'
+      pr_number:
+        required: false
+        type: string
+        description: 'PR number for link'
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        run: |
+          STATUS_ICON="${{ inputs.status == 'success' && '✅' || '❌' }}"
+          COLOR="${{ inputs.status == 'success' && 'good' || 'danger' }}"
+
+          # メッセージの構築
+          MESSAGE_TEXT="${{ inputs.message }}"
+
+          # JSONペイロードの構築
+          cat > /tmp/slack-payload.json << ENDOFFILE
+          {
+            "text": "${STATUS_ICON} ${{ inputs.title }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${STATUS_ICON} *${{ inputs.title }}*"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*リポジトリ:*\n${{ github.repository }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*ワークフロー:*\n${{ github.workflow }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*実行ID:*\n${{ github.run_id }}"
+                  }
+                ]
+              }
+          ENDOFFILE
+
+          # メッセージがある場合は追加
+          if [ -n "$MESSAGE_TEXT" ]; then
+            cat >> /tmp/slack-payload.json << ENDOFFILE
+              ,
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${MESSAGE_TEXT}"
+                }
+              }
+          ENDOFFILE
+          fi
+
+          # ボタンの追加
+          cat >> /tmp/slack-payload.json << ENDOFFILE
+              ,
+              {
+                "type": "actions",
+                "elements": [
+          ENDOFFILE
+
+          # Issue/PRリンクの追加
+          if [ -n "${{ inputs.issue_number }}" ]; then
+            cat >> /tmp/slack-payload.json << ENDOFFILE
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Issue #${{ inputs.issue_number }}を確認"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/issues/${{ inputs.issue_number }}"
+                  }
+          ENDOFFILE
+          elif [ -n "${{ inputs.pr_number }}" ]; then
+            cat >> /tmp/slack-payload.json << ENDOFFILE
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "PR #${{ inputs.pr_number }}を確認"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/pull/${{ inputs.pr_number }}"
+                  }
+          ENDOFFILE
+          else
+            cat >> /tmp/slack-payload.json << ENDOFFILE
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "ワークフロー実行ログを確認"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+          ENDOFFILE
+          fi
+
+          # JSONを閉じる
+          cat >> /tmp/slack-payload.json << ENDOFFILE
+                ]
+              }
+            ]
+          }
+          ENDOFFILE
+
+          # Slackに送信
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d @/tmp/slack-payload.json

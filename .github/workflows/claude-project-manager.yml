@@ -2,8 +2,8 @@ name: Claude Project Manager
 
 on:
   schedule:
-    # 毎日 9:00, 15:00, 21:00 (JST = UTC+9 なので 0:00, 6:00, 12:00 UTC)
-    - cron: '0 0,6,12 * * *'
+    # 30分おきに実行
+    - cron: '*/30 * * * *'
   workflow_dispatch:  # 手動トリガーも可能
 
 permissions:
@@ -79,3 +79,36 @@ jobs:
           echo "✅ Issue #$ISSUE_NUMBER にClaudeをメンションしました"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack on Success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: 'C09UD9L8AT1'
+          slack-message: |
+            ✅ *Claude Project Manager - 実行成功*
+
+            *リポジトリ:* ${{ github.repository }}
+            *ワークフロー:* ${{ github.workflow }}
+            *Issue作成:* #${{ env.ISSUE_NUMBER }}
+            *実行時刻:* ${{ github.event.repository.updated_at }}
+
+            <${{ github.server_url }}/${{ github.repository }}/issues/${{ env.ISSUE_NUMBER }}|Issue #${{ env.ISSUE_NUMBER }}を確認>
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: 'C09UD9L8AT1'
+          slack-message: |
+            ❌ *Claude Project Manager - 実行失敗*
+
+            *リポジトリ:* ${{ github.repository }}
+            *ワークフロー:* ${{ github.workflow }}
+            *実行時刻:* ${{ github.event.repository.updated_at }}
+
+            <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|ワークフロー実行ログを確認>
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

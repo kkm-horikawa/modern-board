@@ -106,6 +106,46 @@ gh issue comment 3 --body "@claude このIssueの実装を開始してくださ�
 
 これにより、推奨したタスクが自動的に実行されます。
 
+**重要: Issue実装時のワークフロー（必須）**
+
+Issueの実装を開始する場合、**必ず以下の順序で作業してください：**
+
+1. **Draft PRを先に作成**
+   ```bash
+   # ブランチを作成
+   git checkout -b feature/issue-XX-description
+
+   # 空コミットを作成
+   git commit --allow-empty -m "WIP: Issue #XX の実装開始"
+
+   # プッシュ
+   git push origin feature/issue-XX-description
+
+   # Draft PRを作成
+   gh pr create --draft \
+     --title "WIP: Issue #XX タイトル" \
+     --body "Issue #XX の実装を進めています。Closes #XX" \
+     --base develop
+   ```
+
+2. **実装を進める**
+   - コードを書く
+   - コミットを追加
+   - 必要に応じてプッシュ
+
+3. **実装完了後、Draft を解除**
+   ```bash
+   gh pr ready
+   ```
+
+4. **レビュー依頼**
+   - PR にコメントでレビューを依頼
+
+**このワークフローを守ることで：**
+- 作業の透明性が確保される
+- レビュアーが進捗を確認できる
+- 並行作業時の競合を防げる
+
 ---
 
 ### 📝 実行後の報告

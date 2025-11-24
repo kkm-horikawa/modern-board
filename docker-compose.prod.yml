@@ -1,0 +1,65 @@
+# Production override for docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ==============================================================================
+  # Backend (Production)
+  # ==============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    volumes:
+      # Remove code mount - use only persistent data volumes
+      - backend-db:/app/db
+      - backend-static:/app/static
+      - backend-media:/app/media
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      # Set these via environment variables or .env file
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DEBUG=${DEBUG:-False}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/db/db.sqlite3}
+    # Production-specific settings
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # ==============================================================================
+  # Frontend (Production)
+  # ==============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    volumes: []  # No volumes needed - static files are baked into nginx image
+    environment:
+      - NODE_ENV=production
+    # Production-specific settings
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s

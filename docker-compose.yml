@@ -1,0 +1,93 @@
+services:
+  # ==============================================================================
+  # Backend service (Django + DRF + Wagtail)
+  # ==============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development  # Use 'production' for production deployment
+    container_name: modern-board-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount backend code for development (comment out for production)
+      - ./backend:/app
+      # Persistent database storage
+      - backend-db:/app/db
+      # Static files
+      - backend-static:/app/static
+      # Media files
+      - backend-media:/app/media
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
+      - DATABASE_URL=sqlite:////app/db/db.sqlite3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/admin/login/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==============================================================================
+  # Frontend service (React + Vite + TypeScript)
+  # ==============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development  # Use 'production' for production deployment
+    container_name: modern-board-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount frontend code for development (comment out for production)
+      - ./frontend:/app
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ==============================================================================
+# Named volumes for persistent data
+# ==============================================================================
+volumes:
+  backend-db:
+    driver: local
+  backend-static:
+    driver: local
+  backend-media:
+    driver: local
+
+# ==============================================================================
+# Production override example (save as docker-compose.prod.yml)
+# ==============================================================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# services:
+#   backend:
+#     build:
+#       target: production
+#     volumes:
+#       # Remove code mount for production
+#       - backend-db:/app/db
+#       - backend-static:/app/static
+#       - backend-media:/app/media
+#     environment:
+#       - DJANGO_SETTINGS_MODULE=config.settings.production
+#       - SECRET_KEY=${SECRET_KEY}
+#       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+#
+#   frontend:
+#     build:
+#       target: production
+#     volumes: []  # No volumes needed for production nginx
+#     environment:
+#       - NODE_ENV=production

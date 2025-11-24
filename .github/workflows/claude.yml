@@ -45,6 +45,10 @@ jobs:
 
           # Allow gh commands for full automation
           claude_args: '--allowed-tools "Bash(gh:*)"'
+        env:
+          # Use PAT_TOKEN for gh commands to allow triggering other workflows
+          # (CLAUDE_CODE_OAUTH_TOKEN doesn't trigger workflows to prevent infinite loops)
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Get Claude's Response
         if: always()

@@ -78,15 +78,53 @@ gh issue edit <Issue番号> --milestone "マイルストーン名"
 gh project item-add <プロジェクト番号> --owner @me --url <Issue/PR URL>
 ```
 
-#### 6. 次のアクション決定と実行
+#### 6. 停滞タスクの検出と再実行
+
+**⚠️ 重要: 以下のケースを検出し、再度実行を促してください**
+
+- [ ] `@claude` メンションがあるのにClaudeが応答していないIssue/PR
+- [ ] Draft PRが48時間以上更新されていない
+- [ ] レビュー待ちPRが72時間以上放置されている
+- [ ] Issueがアサインされているが7日以上更新がない
+
+**検出コマンド:**
+```bash
+# 最近のIssueコメントをチェック（@claudeメンション検索）
+gh issue list --state open --json number,title,comments,updatedAt | \
+  jq '.[] | select(.comments[-1].body | contains("@claude"))'
+
+# Draft PRで長期間更新がないものを検出（48時間以上）
+gh pr list --state open --draft --json number,title,updatedAt | \
+  jq --arg date "$(date -u -v-48H +%Y-%m-%dT%H:%M:%SZ)" \
+  '.[] | select(.updatedAt < $date)'
+
+# 特定のIssueの最後のコメントを確認
+gh issue view <Issue番号> --json comments | \
+  jq '.comments[-1] | {author: .author.login, body: .body, createdAt: .createdAt}'
+```
+
+**再実行アクション:**
+
+停滞していると判断したIssue/PRには、再度 `@claude` メンションを投稿してください：
+
+```bash
+# 例: Issue #3でClaudeの応答がない場合
+gh issue comment 3 --body "@claude 前回のメンションから応答がありません。このタスクの実行を再開してください。"
+
+# 例: Draft PRが停滞している場合
+gh pr comment <PR番号> --body "@claude このDraft PRが48時間以上更新されていません。実装を継続するか、ブロッカーがあればコメントしてください。"
+```
+
+#### 7. 次のアクション決定と実行
 
 以下の優先順位で判断し、**実際に実行**してください：
 
 1. **Critical**: バグ修正、ブロッカー解消
-2. **High**: レビュー待ちPRの処理
-3. **Medium**: マイルストーン0の完了
-4. **Medium**: マイルストーン1の進行
-5. **Low**: ドキュメント改善、最適化
+2. **High**: 停滞タスクの検出と再実行（セクション6参照）
+3. **High**: レビュー待ちPRの処理
+4. **Medium**: マイルストーン0の完了
+5. **Medium**: マイルストーン1の進行
+6. **Low**: ドキュメント改善、最適化
 
 **⚠️ 重要: 重複作業の防止**
 

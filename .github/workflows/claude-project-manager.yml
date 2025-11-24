@@ -32,9 +32,36 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Send notification (optional)
+      - name: Mention Claude for analysis
         if: success()
         run: |
-          echo "📋 プロジェクト管理タスクが作成されました。"
-          echo "Claudeが自動的に処理を開始します。"
-          # ここにSlack/Discord通知を追加可能
+          # 作成したIssueの番号を取得
+          ISSUE_NUMBER=$(gh issue list --label "project-management" --limit 1 --json number --jq '.[0].number')
+
+          # Claudeをメンションして分析を依頼
+          gh issue comment $ISSUE_NUMBER --body "@claude
+
+プロジェクト管理タスクを実行してください。
+
+## 実行内容
+以下の情報を分析し、詳細なレポートをこのIssueにコメントで投稿してください：
+
+1. **オープンなPRの確認**
+   - レビューが必要なPR
+   - CI/CDの状態
+   - マージ可能かどうか
+
+2. **Issueの優先順位分析**
+   - バグ、ブロッカーの有無
+   - マイルストーン進捗
+   - 次に着手すべきIssue
+
+3. **推奨アクション**
+   - 最優先で対応すべきこと
+   - 次のステップの提案
+
+**重要**: Issue作成やPR作成は不要です。分析と推奨アクションの提示のみお願いします。"
+
+          echo "✅ Issue #$ISSUE_NUMBER にClaudeをメンションしました"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

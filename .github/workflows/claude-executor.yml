@@ -1,0 +1,99 @@
+name: Claude Executor
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  execute-claude-task:
+    # @claude メンションがあり、かつ automated または project-management ラベルがある Issue のみ
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      github.event.issue &&
+      (contains(github.event.issue.labels.*.name, 'automated') ||
+       contains(github.event.issue.labels.*.name, 'project-management'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+
+      - name: Create Claude instruction file
+        run: |
+          cat > /tmp/claude-instruction.md <<'EOF'
+          # プロジェクト管理タスク実行
+
+          以下のIssueに対する作業を実行してください：
+          Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+          ## Issue内容
+          ${{ github.event.issue.body }}
+
+          ## 実行すべきこと
+          1. プロジェクト全体の状況分析
+             - gh pr list --state open でPR確認
+             - gh issue list --milestone でマイルストーン進捗確認
+             - gh issue list --label bug,blocker で優先課題確認
+
+          2. 次のアクション決定と実行
+             優先順位: Critical > High > Medium > Low
+             - Blocker/バグがあれば最優先で対応
+             - レビュー待ちPRがあればレビュー実行
+             - 最優先Issueを見つけて実装開始
+
+          3. 実行結果を Issue #${{ github.event.issue.number }} にコメント投稿
+             ```bash
+             gh issue comment ${{ github.event.issue.number }} --body "実行結果をここに記載"
+             ```
+
+          4. 必要に応じて:
+             - 新しいブランチ作成: git checkout -b feature/XXX
+             - コード実装
+             - PR作成: gh pr create --draft
+             - 新しいIssue作成: gh issue create
+
+          ## 重要な注意事項
+          - 全ての作業内容を Issue #${{ github.event.issue.number }} にコメントで報告してください
+          - PRを作成する場合は必ず --draft で作成してください
+          - ブランチ名は feature/*, fix/*, docs/* の形式を使用してください
+          - developブランチをベースにしてください
+          EOF
+
+      - name: Execute Claude Code
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Claude Codeを実行
+          claude --non-interactive /tmp/claude-instruction.md || true
+
+      - name: Notify completion
+        if: always()
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "🤖 Claude Executor が処理を完了しました。
+
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

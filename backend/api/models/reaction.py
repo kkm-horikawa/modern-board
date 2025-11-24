@@ -1,10 +1,24 @@
-"""Reaction model for post reactions."""
+"""レスへのリアクションモデル.
+
+レスに対するリアクション（いいね、面白いなど）を管理する。
+同一セッションからの重複リアクションを防止する。
+"""
 
 from django.db import models
 
 
 class Reaction(models.Model):
-    """A reaction to a post (like, useful, funny, etc.)."""
+    """レスへのリアクションを表すモデル.
+
+    レスに対するユーザーの反応を記録する。
+    リアクションタイプは固定で、同一セッションからの重複を防止する。
+
+    Attributes:
+        post: リアクション対象のレス（削除時はカスケード削除）
+        user_session: リアクションしたセッション（削除時はNULLに設定）
+        reaction_type: リアクションの種類（like, useful, funnyなど）
+        created_at: リアクション日時
+    """
 
     REACTION_TYPES = [
         ("like", "いいね"),
@@ -29,10 +43,16 @@ class Reaction(models.Model):
         db_table = "board_reaction"
         verbose_name = "Reaction"
         verbose_name_plural = "Reactions"
+        # NOTE: 同一セッションから同一レスへの同じリアクションを防止
         unique_together = [["post", "user_session", "reaction_type"]]
         indexes = [
             models.Index(fields=["post", "reaction_type"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """リアクションの文字列表現を返す.
+
+        Returns:
+            リアクション種類とレス番号の組み合わせ
+        """
         return f"{self.reaction_type} on Post #{self.post.post_number}"

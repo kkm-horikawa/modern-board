@@ -637,3 +637,383 @@ frontend/src/
 
 - **水平スケーリング**: アプリケーションサーバーの追加対応
 - **キャッシング**: Redis利用（統計情報、トレンドデータ）
+
+---
+
+## コーディング規約
+
+### 基本方針
+
+- **可読性第一**: コードは書くよりも読まれる回数の方が多い
+- **一貫性**: プロジェクト全体で統一されたスタイルを維持
+- **テスト駆動**: すべての機能にテストを書く（カバレッジ85%以上を目標）
+- **ドキュメント**: 複雑なロジックには必ずコメントを残す
+
+### Python / Django コーディング規約
+
+#### 1. コメント規約
+
+**モジュール・クラス・関数のDocstring**:
+- Google Styleのdocstringを使用
+- すべてのpublicな関数、クラス、モジュールにdocstringを記述
+- 日本語で記述
+
+```python
+"""モジュールの説明を1行で記述.
+
+詳細な説明が必要な場合はここに記述する。
+複数行にわたって説明できる。
+"""
+
+class Thread(models.Model):
+    """掲示板スレッドを表すモデル.
+
+    スレッドはカテゴリに属し、複数のタグを持つことができる。
+    勢いスコアは直近の投稿頻度から自動計算される。
+
+    Attributes:
+        title: スレッドのタイトル
+        category: 所属カテゴリ
+        momentum: 勢いスコア（レス/時）
+        is_pinned: ピン留めフラグ
+    """
+    pass
+
+def calculate_momentum(thread_id: int, hours: int = 1) -> float:
+    """スレッドの勢いスコアを計算する.
+
+    Args:
+        thread_id: 対象スレッドのID
+        hours: 計算対象の時間範囲（デフォルト: 1時間）
+
+    Returns:
+        勢いスコア（レス/時）
+
+    Raises:
+        Thread.DoesNotExist: 指定されたスレッドが存在しない場合
+
+    Examples:
+        >>> calculate_momentum(123)
+        45.5
+        >>> calculate_momentum(123, hours=24)
+        12.3
+    """
+    pass
+```
+
+**インラインコメント**:
+- 複雑なロジックには必ずコメントを追加
+- Why（なぜ）を説明する（Whatはコードから読み取れる）
+- TODO/FIXME/NOTE/HACK等のタグを活用
+
+```python
+# NG例: コードの内容をそのまま説明
+posts = Post.objects.filter(thread=thread)  # スレッドの投稿を取得
+
+# OK例: なぜそうするのかを説明
+posts = Post.objects.filter(thread=thread)  # アーカイブ済みスレッドは除外されるため、is_archived=Falseは不要
+
+# 特殊なケースの処理
+if momentum < 0:
+    # NOTE: 過去のバグで負の値が保存されているケースがあるため、0に補正
+    momentum = 0
+
+# TODO: パフォーマンス改善のためキャッシュ化を検討
+trending_threads = Thread.objects.filter(momentum__gt=50).order_by('-momentum')
+
+# HACK: Django 5.2のバグ回避のための暫定対応（Issue #12345）
+queryset = queryset.distinct()
+```
+
+#### 2. 命名規則
+
+- **変数・関数**: snake_case（例: `thread_count`, `calculate_momentum`）
+- **クラス**: PascalCase（例: `ThreadSerializer`, `PostViewSet`）
+- **定数**: UPPER_SNAKE_CASE（例: `MAX_POST_LENGTH`, `DEFAULT_PAGE_SIZE`）
+- **プライベート**: 先頭にアンダースコア（例: `_internal_method`）
+- **Boolean**: is_/has_/can_で始める（例: `is_active`, `has_permission`）
+
+#### 3. 型ヒント
+
+- すべての関数引数と戻り値に型ヒントを追加
+
+```python
+from typing import Optional, List, Dict, Any
+
+def get_trending_threads(
+    category_id: Optional[int] = None,
+    limit: int = 10
+) -> List[Dict[str, Any]]:
+    """トレンドスレッドを取得する."""
+    pass
+```
+
+#### 4. テスト規約
+
+**ファイル構成**:
+```
+api/tests/
+├── unit/              # ユニットテスト（モデル、ユーティリティ）
+│   ├── test_models.py
+│   └── test_utils.py
+├── integration/       # 統合テスト（シリアライザー、サービス）
+│   ├── test_serializers.py
+│   └── test_services.py
+└── e2e/              # E2Eテスト（API エンドポイント）
+    ├── test_thread_api.py
+    └── test_post_api.py
+```
+
+**テスト命名規則**:
+```python
+class TestThreadModel:
+    """Threadモデルのテスト."""
+
+    def test_create_thread_success(self):
+        """正常系: スレッドが正しく作成される."""
+        pass
+
+    def test_create_thread_with_invalid_title_fails(self):
+        """異常系: 無効なタイトルでスレッド作成が失敗する."""
+        pass
+
+    def test_calculate_momentum_returns_correct_value(self):
+        """勢いスコアが正しく計算される."""
+        pass
+```
+
+**カバレッジ目標**:
+- 全体: 85%以上
+- モデル: 90%以上
+- ビューセット: 80%以上
+- ユーティリティ: 95%以上
+
+**テストの原則**:
+- Arrange-Act-Assert パターンを使用
+- 1テスト1検証（1つのテストで1つのことだけをテスト）
+- テストは独立させる（他のテストの実行順序に依存しない）
+
+```python
+def test_thread_post_count_increment():
+    """Arrange-Act-Assertパターンの例."""
+    # Arrange: テストデータの準備
+    thread = Thread.objects.create(title="Test Thread")
+    assert thread.post_count == 0
+
+    # Act: テスト対象の実行
+    Post.objects.create(thread=thread, content="Test post")
+
+    # Assert: 結果の検証
+    thread.refresh_from_db()
+    assert thread.post_count == 1
+```
+
+### TypeScript / React コーディング規約
+
+#### 1. コメント規約
+
+**TSDoc形式を使用**:
+
+```typescript
+/**
+ * スレッド一覧を取得する
+ *
+ * @param categoryId - フィルタするカテゴリID（省略可）
+ * @param ordering - ソート順（momentum, -created_at等）
+ * @returns スレッド一覧のPromise
+ * @throws {ApiError} API呼び出しに失敗した場合
+ *
+ * @example
+ * ```typescript
+ * const threads = await fetchThreads("programming", "-momentum");
+ * ```
+ */
+export async function fetchThreads(
+  categoryId?: string,
+  ordering: string = "-momentum"
+): Promise<Thread[]> {
+  // 実装
+}
+
+/**
+ * スレッド詳細を表示するコンポーネント
+ *
+ * @remarks
+ * 30秒ごとに自動更新を行う。自動更新はユーザーが無効化できる。
+ */
+export const ThreadDetail: React.FC<ThreadDetailProps> = ({ threadId }) => {
+  // NOTE: useSWRを使用して自動再検証を実装
+  const { data, error } = useSWR(`/threads/${threadId}`, {
+    refreshInterval: 30000, // 30秒ごとに更新
+  });
+
+  // TODO: エラー時のフォールバックUIを実装
+  if (error) return <div>エラーが発生しました</div>;
+
+  return <div>{/* レンダリング */}</div>;
+};
+```
+
+**インラインコメント**:
+```typescript
+// NG例
+const count = threads.length; // スレッド数を取得
+
+// OK例
+const count = threads.length; // バッジ表示のため、アーカイブ済みは含まない
+
+// 複雑なロジック
+const momentum = posts.filter(
+  // NOTE: 勢い計算は直近1時間の投稿のみを対象とする
+  (post) => isWithinHour(post.createdAt)
+).length * 24;
+```
+
+#### 2. 命名規則
+
+- **変数・関数**: camelCase（例: `threadCount`, `fetchThreads`）
+- **型・インターフェース**: PascalCase（例: `Thread`, `ApiResponse`）
+- **定数**: UPPER_SNAKE_CASE（例: `MAX_TITLE_LENGTH`, `API_BASE_URL`）
+- **コンポーネント**: PascalCase（例: `ThreadList`, `PostItem`）
+- **カスタムフック**: use で始める（例: `useThread`, `useLocalStorage`）
+- **Boolean**: is/has/canで始める（例: `isLoading`, `hasError`）
+
+#### 3. 型定義
+
+- すべての関数に型を明示
+- `any`は極力使用しない
+- 共通の型は `types/index.ts` に集約
+
+```typescript
+// types/index.ts
+export interface Thread {
+  id: number;
+  title: string;
+  category: Category;
+  postCount: number;
+  momentum: number;
+  createdAt: string;
+}
+
+export type SortOrder = "momentum" | "-created_at" | "-post_count";
+
+// services/threadService.ts
+export async function fetchThreads(
+  categoryId?: string,
+  ordering: SortOrder = "momentum"
+): Promise<Thread[]> {
+  // 実装
+}
+```
+
+#### 4. テスト規約
+
+**ファイル構成**:
+```
+src/
+├── components/
+│   ├── ThreadList.tsx
+│   └── ThreadList.test.tsx    # コンポーネントと同じディレクトリ
+├── hooks/
+│   ├── useThread.ts
+│   └── useThread.test.ts
+└── utils/
+    ├── date.ts
+    └── date.test.ts
+```
+
+**テスト命名規則**:
+```typescript
+describe("ThreadList", () => {
+  it("スレッド一覧を正しく表示する", () => {
+    // テスト実装
+  });
+
+  it("ローディング中はスピナーを表示する", () => {
+    // テスト実装
+  });
+
+  it("エラー時はエラーメッセージを表示する", () => {
+    // テスト実装
+  });
+});
+```
+
+### エディタ設定
+
+#### VS Code 推奨拡張機能
+
+- Python: `ms-python.python`
+- Ruff: `charliermarsh.ruff`
+- TypeScript: 標準搭載
+- Biome: `biomejs.biome`
+- Tailwind CSS IntelliSense: `bradlc.vscode-tailwindcss`
+
+#### .vscode/settings.json
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true,
+    "source.organizeImports": true
+  },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
+}
+```
+
+### Git コミットメッセージ規約
+
+Conventional Commits形式を使用:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Type**:
+- `feat`: 新機能
+- `fix`: バグ修正
+- `docs`: ドキュメント更新
+- `style`: コードスタイル修正（ロジック変更なし）
+- `refactor`: リファクタリング
+- `test`: テスト追加・修正
+- `chore`: ビルド設定等
+
+**例**:
+```
+feat(api): スレッド検索機能を追加
+
+全文検索エンドポイント /api/v1/threads/search/ を実装。
+タイトルと本文を対象にOR検索を行う。
+
+Closes #123
+```
+
+### コードレビューチェックリスト
+
+#### 必須項目
+
+- [ ] すべてのpublic関数にdocstring/TSDocがある
+- [ ] 複雑なロジックにコメントがある
+- [ ] テストが書かれている（カバレッジ85%以上）
+- [ ] 型ヒント/型定義がある
+- [ ] Linter（Ruff / Biome）がエラーなく通る
+- [ ] テストがすべてパスする
+- [ ] セキュリティ上の問題がない（XSS, SQLインジェクション等）
+
+#### 推奨項目
+
+- [ ] パフォーマンスの考慮がされている
+- [ ] エラーハンドリングが適切
+- [ ] 再利用可能なコードになっている
+- [ ] アクセシビリティに配慮している（フロントエンド）

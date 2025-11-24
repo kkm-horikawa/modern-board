@@ -1,0 +1,48 @@
+name: Claude Issue Creator
+
+on:
+  schedule:
+    # 毎日 12:00, 18:00 JST (3:00, 9:00 UTC)
+    - cron: '0 3,9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create issue creation task
+        run: |
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+
+          ISSUE_URL=$(gh issue create \
+            --title "ISSUE-${DATE}: 新規Issue作成タスク" \
+            --body-file .github/templates/issue-creation-task.md \
+            --label "automation,issue-management")
+
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Trigger Claude
+        if: success()
+        run: |
+          gh issue comment ${{ env.ISSUE_NUMBER }} --body "@claude このIssueの説明に記載された新規Issue作成タスクを実行してください。"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}

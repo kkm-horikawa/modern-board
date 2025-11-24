@@ -1,0 +1,50 @@
+name: Claude Organizer
+
+on:
+  schedule:
+    # 毎日 0:00 JST (15:00 UTC 前日)
+    - cron: '0 15 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  organize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create organization task
+        run: |
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+
+          ISSUE_URL=$(gh issue create \
+            --title "ORG-${DATE}: プロジェクト整理タスク" \
+            --body-file .github/templates/organization-task.md \
+            --label "automation,organization")
+
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Trigger Claude
+        if: success()
+        run: |
+          gh issue comment ${{ env.ISSUE_NUMBER }} --body "@claude
+
+このIssueの説明に記載された整理タスクを実行してください。"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}

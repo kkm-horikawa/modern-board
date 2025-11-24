@@ -4,16 +4,25 @@
 
 ### 📊 実行すべき分析
 
-#### 1. 既存PRのレビュー確認
-- [ ] `gh pr list --state open` でオープンなPRを確認
+#### 1. 既存PRのレビュー確認（Draft PR含む）
+- [ ] `gh pr list --state open` でオープンなPRを確認（**Draft PR含む**）
+- [ ] **Draft PRが存在するIssueには新たに着手しない**（重複作業防止）
 - [ ] レビューが必要なPRを特定
 - [ ] 優先度の高いPRをレビュー実行
 
 **確認コマンド:**
 ```bash
+# 全てのPR（Draft含む）を確認
 gh pr list --state open
+
+# Draft PRのみ確認
+gh pr list --state open --draft
+
+# PRの詳細確認
 gh pr view <PR番号> --comments
 ```
+
+**重要: Draft PRが存在するIssueは作業中のため、新たに着手しないでください**
 
 #### 2. Issue優先順位分析
 - [ ] マイルストーン0-4の進捗確認
@@ -79,8 +88,18 @@ gh project item-add <プロジェクト番号> --owner @me --url <Issue/PR URL>
 4. **Medium**: マイルストーン1の進行
 5. **Low**: ドキュメント改善、最適化
 
+**⚠️ 重要: 重複作業の防止**
+
+新しいIssueに着手する前に、必ず以下を確認してください：
+```bash
+# そのIssueに関連するPR（Draft含む）が既に存在しないか確認
+gh pr list --state open --search "in:title Issue番号 OR in:body Closes OR in:body Close"
+```
+
+**Draft PRが存在する場合は、そのIssueには着手せず、他の優先度の高いタスクを選択してください。**
+
 **実行可能なアクション:**
-- 最優先Issueを実装する（新しいPR作成）
+- 最優先Issueを実装する（**Draft PRが存在しないことを確認後**）
 - PRをレビューする（コメント投稿、Approve/Request Changes）
 - 新しいIssueを作成する（バグ、新機能、改善）
 - Issueにマイルストーンを割り当てる

@@ -2,8 +2,8 @@ name: Claude Project Manager
 
 on:
   schedule:
-    # 30分おきに実行
-    - cron: '*/30 * * * *'
+    # 2時間おきに実行
+    - cron: '0 */2 * * *'
   workflow_dispatch:  # 手動トリガーも可能
 
 permissions:

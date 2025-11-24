@@ -16,8 +16,10 @@
 ## 実行
 
 ```bash
-# Issueを選ぶ
-gh issue list --state open --label "priority:critical,priority:high" --limit 5
+# Issueを選ぶ（優先順位: critical → bug+high → high）
+gh issue list --state open --label "priority:critical" --limit 3
+gh issue list --state open --label "bug,priority:high" --limit 3
+gh issue list --state open --label "priority:high" --limit 3
 
 # 実装
 git checkout develop && git pull

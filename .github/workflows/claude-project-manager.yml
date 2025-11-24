@@ -6,6 +6,10 @@ on:
     - cron: '0 0,6,12 * * *'
   workflow_dispatch:  # 手動トリガーも可能
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   create-management-issue:
     runs-on: ubuntu-latest

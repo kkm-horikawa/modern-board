@@ -2,6 +2,22 @@
 
 このディレクトリには、Modern Board（匿名掲示板アプリケーション）の開発タスクが含まれています。各タスクは個別のMarkdownファイルとして管理され、複数人での並行開発を可能にします。
 
+## ⚠️ 重要: 作業を始める前に
+
+**必ず以下を実行してください：**
+
+1. **既存のDraft PRを確認** - 同じタスクを他の人が作業中でないか確認
+   ```bash
+   gh pr list --state open --draft
+   ```
+
+2. **Draft PRを作成** - 作業開始時に必ずDraft PRを作成して作業を予約
+   ```bash
+   gh pr create --draft --title "タスクID: タスク名"
+   ```
+
+詳細は「[タスクの進め方](#タスクの進め方)」セクションを参照してください。
+
 ## 📁 ディレクトリ構成
 
 ```
@@ -205,39 +221,127 @@ Easy / Medium / Hard
 
 ### タスクの選択方法
 
-1. **優先度の確認**: High → Medium → Low の順に着手
-2. **前提条件の確認**: 依存するタスクが完了しているか確認
-3. **スキルマッチング**: 自分のスキルセットに合ったタスクを選択
-4. **並行作業の調整**: 他のメンバーと重複しないよう調整
+1. **Draft PRの確認**: 既に誰かが作業中でないか確認
+   ```bash
+   gh pr list --state open --draft
+   ```
+2. **優先度の確認**: High → Medium → Low の順に着手
+3. **前提条件の確認**: 依存するタスクが完了しているか確認
+4. **スキルマッチング**: 自分のスキルセットに合ったタスクを選択
+5. **並行作業の調整**: チームで相談して分担を決める
 
 ### タスクの進め方
 
-1. タスクファイルを読み、実装内容を理解する
-2. 実装内容のチェックリストに従って作業を進める
-3. 受け入れ基準を満たしているか確認する
-4. テストを実行し、すべてパスすることを確認する
-5. コードレビューを依頼する
-6. マージ後、関連タスクを更新する
+#### ⚠️ 重要: 作業開始前に必ずDraft PRを作成すること
+
+作業の重複を防ぐため、以下の手順を**必ず**守ってください：
+
+**1. 既存のDraft PRを確認**
+```bash
+# GitHubでDraft PRを確認
+gh pr list --state open --draft
+
+# または、ブラウザで確認
+# https://github.com/user/modern-board/pulls?q=is%3Apr+is%3Aopen+draft%3Atrue
+```
+
+**同じタスクのDraft PRが既に存在する場合は、別のタスクを選んでください！**
+
+**2. ブランチを作成**
+```bash
+# mainブランチから最新を取得
+git checkout main
+git pull origin main
+
+# 機能ブランチを作成（タスクIDをブランチ名に含める）
+git checkout -b feature/BE-001-1-category-tag-api-tests
+```
+
+**3. Draft PRを作成**
+```bash
+# 空コミットを作成してプッシュ
+git commit --allow-empty -m "chore: start BE-001-1 - カテゴリ・タグAPI統合テスト"
+git push -u origin feature/BE-001-1-category-tag-api-tests
+
+# Draft PRを作成（gh CLIを使用）
+gh pr create --draft \
+  --title "BE-001-1: カテゴリ・タグAPI統合テスト" \
+  --body "## 関連タスク
+- docs/tasks/backend/BE-001-1-category-tag-api-tests.md
+
+## 実装予定
+- [ ] カテゴリAPI統合テスト
+- [ ] タグAPI統合テスト
+
+作業中..."
+
+# または、GitHubのWebUIで作成し、「Create draft pull request」を選択
+```
+
+**4. 実装を進める**
+- タスクファイルのチェックリストに従って実装
+- こまめにコミット・プッシュ
+- Draft PRの説明を適宜更新
+
+**5. 実装完了後**
+- すべてのテストが通ることを確認
+- 受け入れ基準を満たしているか確認
+- Draft PRを「Ready for review」に変更
+- レビューを依頼
+
+**6. マージ後**
+- 関連タスクのステータスを更新
+- 次のタスクへ
 
 ### ブランチ戦略
 
 ```bash
-# 機能ブランチの命名規則
-feature/BE-001-api-integration-tests
-feature/FE-003-thread-list-page
+# ブランチの命名規則（タスクIDを含める）
+feature/BE-001-1-category-tag-api-tests   # サブタスクの場合
+feature/FE-003-thread-list-page            # 単独タスクの場合
+feature/INF-001-docker-production          # インフラタスク
 
-# ブランチ作成例
-git checkout -b feature/BE-001-api-integration-tests
+# ブランチの種類
+main       - 本番環境（保護ブランチ）
+develop    - 開発環境（オプション）
+feature/*  - 機能開発
+bugfix/*   - バグ修正
+hotfix/*   - 緊急修正
 ```
+
+**重要なルール:**
+- ✅ 必ずmainブランチから分岐する
+- ✅ ブランチ名にタスクIDを含める
+- ✅ 1ブランチ = 1タスク = 1PR
+- ❌ 複数のタスクを1つのブランチで実装しない
+- ❌ 他の人のブランチに直接コミットしない
 
 ## 📈 進捗の可視化
 
 GitHub Projectsまたは類似のツールを使用して、タスクの進捗を可視化することを推奨します：
 
-- **Todo**: 未着手
-- **In Progress**: 作業中
-- **Review**: レビュー待ち
-- **Done**: 完了
+### Draft PRによる進捗管理
+
+- **Draft PR作成済み**: タスク着手（作業予約）
+- **Draft PR (In Progress)**: 実装中
+- **Ready for Review**: レビュー待ち
+- **Approved**: レビュー承認済み
+- **Merged**: 完了
+
+### プロジェクトボード（推奨）
+
+| 列 | 状態 | Draft PR |
+|---|---|---|
+| **📋 Todo** | 未着手 | なし |
+| **🚀 In Progress** | 作業中 | Draft PR作成済み |
+| **👀 Review** | レビュー待ち | Ready for Review |
+| **✅ Done** | 完了 | マージ済み |
+
+**Draft PRのメリット:**
+- ✅ 作業の重複を防げる
+- ✅ 進捗が可視化される
+- ✅ 早期にフィードバックを得られる
+- ✅ CIが自動実行される
 
 ## 🛠️ 技術スタック（参考）
 

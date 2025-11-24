@@ -19,6 +19,7 @@ dev = [
     "pytest-django>=4.9.0",
     "pytest-cov>=6.0.0",
     "ruff>=0.14.4",
+    "pyright>=1.1.390",
     "pre-commit>=4.0.0",
 ]
 
@@ -82,3 +83,20 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+# Pyright configuration
+[tool.pyright]
+include = ["api", "config"]
+exclude = [
+    "**/migrations",
+    "**/__pycache__",
+    "**/tests",
+    ".venv",
+]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false

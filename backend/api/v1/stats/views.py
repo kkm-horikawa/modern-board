@@ -1,4 +1,8 @@
-"""Views for stats endpoints."""
+"""統計情報エンドポイント用ビュー.
+
+掲示板全体の統計情報、トレンドスレッド、トップユーザー、
+アクティビティフィードなどの集計データを提供する。
+"""
 
 from datetime import timedelta
 
@@ -17,7 +21,15 @@ from api.v1.stats.serializers import (
 
 @api_view(["GET"])
 def board_stats(request):
-    """Get overall board statistics."""
+    """掲示板全体の統計情報を取得する.
+
+    Args:
+        request: HTTPリクエスト
+
+    Returns:
+        総スレッド数、総投稿数、総ユーザー数、
+        過去24時間のアクティブスレッド数を含む統計データ
+    """
     stats = {
         "total_threads": Thread.objects.count(),
         "total_posts": Post.objects.count(),
@@ -32,7 +44,14 @@ def board_stats(request):
 
 @api_view(["GET"])
 def trending_threads(request):
-    """Get trending threads by momentum."""
+    """勢いスコアでソートされたトレンドスレッドを取得する.
+
+    Args:
+        request: HTTPリクエスト
+
+    Returns:
+        勢いスコア降順で上位10件のスレッドデータ
+    """
     threads = (
         Thread.objects.all()
         .order_by("-momentum")[:10]
@@ -44,7 +63,14 @@ def trending_threads(request):
 
 @api_view(["GET"])
 def top_users(request):
-    """Get top users/MVPs by points."""
+    """ポイント獲得上位のユーザー（MVP）を取得する.
+
+    Args:
+        request: HTTPリクエスト
+
+    Returns:
+        総ポイント降順で上位10件のユーザーデータ
+    """
     users = UserSession.objects.all().order_by("-total_points")[:10]
     serializer = TopUserSerializer(users, many=True)
     return Response(serializer.data)
@@ -52,8 +78,19 @@ def top_users(request):
 
 @api_view(["GET"])
 def activity_feed(request):
-    """Get recent activity feed."""
-    # Get recent posts with thread info
+    """最近のアクティビティフィードを取得する.
+
+    Args:
+        request: HTTPリクエスト
+
+    Returns:
+        直近20件の投稿を時系列で含むアクティビティデータ
+
+    Note:
+        現在の実装では投稿のみを表示。
+        完全な実装では、スレッド作成やリアクションも含める。
+    """
+    # NOTE: 最近の投稿をスレッド情報と共に取得
     recent_posts = (
         Post.objects.all()
         .select_related("thread", "author_session")

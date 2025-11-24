@@ -1,4 +1,7 @@
-"""Serializers for thread endpoints."""
+"""スレッドエンドポイント用シリアライザー.
+
+スレッドの一覧取得、詳細表示、作成、更新のためのシリアライザーを提供する。
+"""
 
 from rest_framework import serializers
 
@@ -8,7 +11,16 @@ from api.v1.tags.serializers import TagListSerializer
 
 
 class ThreadListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for thread lists."""
+    """スレッド一覧用の軽量シリアライザー.
+
+    スレッド一覧表示に必要な情報を提供する。
+    パフォーマンスを考慮し、投稿内容は含まず、メタデータのみを返す。
+
+    Attributes:
+        category_name: 所属カテゴリ名（読み取り専用）
+        author_name: 作成者の一時名（読み取り専用、NULL許可）
+        tags: 関連付けられたタグのリスト（読み取り専用）
+    """
 
     category_name = serializers.CharField(source="category.name", read_only=True)
     author_name = serializers.CharField(
@@ -43,7 +55,17 @@ class ThreadListSerializer(serializers.ModelSerializer):
 
 
 class ThreadDetailSerializer(serializers.ModelSerializer):
-    """Detailed serializer for thread with posts."""
+    """スレッド詳細用の完全なシリアライザー.
+
+    スレッドの詳細情報と全ての投稿を含む完全なデータを提供する。
+    スレッド詳細画面での表示に使用する。
+
+    Attributes:
+        category_name: 所属カテゴリ名（読み取り専用）
+        author_name: 作成者の一時名（読み取り専用、NULL許可）
+        tags: 関連付けられたタグのリスト（読み取り専用）
+        posts: スレッド内の全投稿のリスト（読み取り専用）
+    """
 
     category_name = serializers.CharField(source="category.name", read_only=True)
     author_name = serializers.CharField(
@@ -83,7 +105,15 @@ class ThreadDetailSerializer(serializers.ModelSerializer):
 
 
 class ThreadCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating threads."""
+    """スレッド作成用のシリアライザー.
+
+    新しいスレッドと最初の投稿（OP）を作成する。
+    スレッド作成時には必ず最初の投稿を含める必要がある。
+
+    Attributes:
+        tag_ids: スレッドに関連付けるタグのIDリスト（書き込み専用、任意）
+        initial_post_content: 最初の投稿の内容（書き込み専用、必須）
+    """
 
     tag_ids = serializers.ListField(
         child=serializers.IntegerField(), write_only=True, required=False
@@ -97,7 +127,18 @@ class ThreadCreateSerializer(serializers.ModelSerializer):
         fields = ["title", "category", "tag_ids", "initial_post_content"]
 
     def create(self, validated_data):
-        """Create thread with initial post."""
+        """スレッドと最初の投稿を作成する.
+
+        Args:
+            validated_data: バリデーション済みのデータ辞書
+
+        Returns:
+            作成されたThreadインスタンス
+
+        Note:
+            最初の投稿（post_number=1, is_op=True）を自動的に作成する。
+            タグが指定されている場合は、スレッドに関連付ける。
+        """
         tag_ids = validated_data.pop("tag_ids", [])
         initial_post_content = validated_data.pop("initial_post_content")
 

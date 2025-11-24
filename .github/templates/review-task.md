@@ -64,28 +64,15 @@ gh pr view {PR_NUMBER} --json files | jq '.files[] | {path, additions, deletions
 - [ ] ドキュメントは更新されているか？
 - [ ] APIドキュメントは正しいか？
 
-### 3. レビューコメントを投稿
+### 3. レビュー結果に基づいてアクションを実行
+
+**重要：必ず以下のどちらかを実行してください**
+
+#### A. 問題がない場合 → 承認してマージ
 
 ```bash
-# 問題がある場合
-gh pr review {PR_NUMBER} --comment --body "## レビューコメント
-
-以下の点について修正をお願いします：
-
-### 1. {問題点1}
-
-{詳細}
-
-### 2. {問題点2}
-
-{詳細}
-
----
-
-修正後、再度レビューします。"
-
-# 承認する場合
-gh pr review {PR_NUMBER} --approve --body "LGTM! 問題ありません。マージして良いと思います。
+# 承認する
+gh pr review {PR_NUMBER} --approve --body "LGTM! 問題ありません。マージします。
 
 **確認した点：**
 - コード品質 ✓
@@ -93,6 +80,56 @@ gh pr review {PR_NUMBER} --approve --body "LGTM! 問題ありません。マー�
 - セキュリティ ✓
 - パフォーマンス ✓
 - ドキュメント ✓"
+
+# すぐにマージ
+gh pr merge {PR_NUMBER} --squash --delete-branch
+
+# 関連Issueをクローズ
+gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了しました。"
+```
+
+#### B. 問題がある場合 → Issueを発行
+
+```bash
+# レビューコメントを投稿
+gh pr review {PR_NUMBER} --comment --body "レビューしました。いくつか問題があるため、修正用のIssueを作成します。"
+
+# 問題点をまとめたIssueを作成
+gh issue create \
+  --title "Fix: PR #{PR_NUMBER} のレビュー指摘事項" \
+  --body "## 概要
+
+PR #{PR_NUMBER} のレビューで以下の問題が見つかりました。
+
+## 問題点
+
+### 1. {問題点1}
+
+**詳細：** {詳細}
+
+**修正方針：** {修正案}
+
+### 2. {問題点2}
+
+**詳細：** {詳細}
+
+**修正方針：** {修正案}
+
+## 関連PR
+
+- #{PR_NUMBER}
+
+## チェックリスト
+
+- [ ] 問題点1の修正
+- [ ] 問題点2の修正
+- [ ] テストの追加
+- [ ] ドキュメントの更新" \
+  --label "bug,priority:high" \
+  --assignee "@me"
+
+# PRにIssueへのリンクを追加
+gh pr comment {PR_NUMBER} --body "修正用のIssue #{NEW_ISSUE_NUMBER} を作成しました。このIssueの完了後、再度レビューします。"
 ```
 
 ### 4. 承認済みPRをマージ
@@ -117,26 +154,32 @@ gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了し�
 ### レビューしたPR
 
 1. **PR #{番号}: {タイトル}**
-   - レビュー結果: Approved / Changes Requested
-   - 主なコメント: {要約}
+   - アクション: Merged / Issue Created
+   - 結果: {マージ完了 または Issue #{番号}を作成}
 
 ### マージしたPR
 
 1. **PR #{番号}: {タイトル}**
    - マージ方法: Squash and Merge
-   - 関連Issue: #{番号}
+   - 関連Issue: #{番号} をクローズ
 
-### 次回確認が必要なPR
+### 作成したIssue（問題があった場合）
 
-- PR #{番号}: {タイトル} - {理由}
+1. **Issue #{番号}: Fix: PR #{PR番号} のレビュー指摘事項**
+   - 問題点: {要約}
+   - 優先度: high
 
 ---
 
 ## 🎯 完了基準
 
+**重要：以下を必ず実行してください**
+
 - [ ] 少なくとも1つのPRをレビュー
-- [ ] 承認済みPRがあればマージ
-- [ ] レビュー内容を報告
+- [ ] レビューしたPRに対して **必ず以下のどちらかを実行**：
+  - [ ] 問題がない → **承認してマージ**
+  - [ ] 問題がある → **Issue発行**（修正内容を明記）
+- [ ] レビュー内容とアクションを報告
 
 **完了したら、このIssueをクローズしてください。**
 
@@ -145,6 +188,7 @@ gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了し�
 ## ⚠️ 重要
 
 - **丁寧にレビューしてください**（チェックリストを活用）
-- **建設的なコメントを書いてください**
+- **必ずマージまたはIssue発行を実行してください**（コメントだけで終わらせない）
+- **Issueには具体的な修正内容を記載してください**
 - **承認する前に必ず動作確認してください**
 - **マージ後はブランチを削除してください**

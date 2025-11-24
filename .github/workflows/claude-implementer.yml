@@ -1,0 +1,48 @@
+name: Claude Implementer
+
+on:
+  schedule:
+    # 毎日 9:00, 15:00, 21:00 JST (0:00, 6:00, 12:00 UTC)
+    - cron: '0 0,6,12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create implementation task
+        run: |
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+
+          # テンプレートを使ってIssueを作成
+          ISSUE_URL=$(gh issue create \
+            --title "IMPL-${DATE}: 機能実装タスク" \
+            --body-file .github/templates/implementation-task.md \
+            --label "automation,implementation")
+
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Trigger Claude
+        if: success()
+        run: |
+          gh issue comment ${{ env.ISSUE_NUMBER }} --body "@claude このIssueの説明に記載された実装タスクを実行してください。"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}

@@ -30,6 +30,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
@@ -43,8 +48,8 @@ jobs:
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # prompt: 'Update the pull request description to include a summary of changes.'
 
-          # Allow gh commands for full automation
-          claude_args: '--allowed-tools "Bash(gh:*)"'
+          # Allow gh commands and python scripts for full automation
+          claude_args: '--allowed-tools "Bash(gh:*)" --allowed-tools "Bash(python3:*)"'
         env:
           # Use PAT_TOKEN for gh commands to allow triggering other workflows
           # (CLAUDE_CODE_OAUTH_TOKEN doesn't trigger workflows to prevent infinite loops)

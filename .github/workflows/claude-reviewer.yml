@@ -1,0 +1,48 @@
+name: Claude Reviewer
+
+on:
+  schedule:
+    # 毎日 10:00, 13:00, 16:00, 19:00 JST (1:00, 4:00, 7:00, 10:00 UTC)
+    - cron: '0 1,4,7,10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create review task
+        run: |
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+
+          ISSUE_URL=$(gh issue create \
+            --title "REVIEW-${DATE}: PRレビュー・マージタスク" \
+            --body-file .github/templates/review-task.md \
+            --label "automation,review")
+
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Trigger Claude
+        if: success()
+        run: |
+          gh issue comment ${{ env.ISSUE_NUMBER }} --body "@claude このIssueの説明に記載されたレビュー・マージタスクを実行してください。"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}

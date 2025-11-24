@@ -39,7 +39,8 @@ jobs:
           ISSUE_NUMBER=$(gh issue list --label "project-management" --limit 1 --json number --jq '.[0].number')
 
           # Claudeをメンションして分析を依頼
-          gh issue comment $ISSUE_NUMBER --body "@claude
+          gh issue comment $ISSUE_NUMBER --body "$(cat <<'EOF'
+@claude
 
 プロジェクト管理タスクを実行してください。
 
@@ -60,7 +61,9 @@ jobs:
    - 最優先で対応すべきこと
    - 次のステップの提案
 
-**重要**: Issue作成やPR作成は不要です。分析と推奨アクションの提示のみお願いします。"
+**重要**: Issue作成やPR作成は不要です。分析と推奨アクションの提示のみお願いします。
+EOF
+)"
 
           echo "✅ Issue #$ISSUE_NUMBER にClaudeをメンションしました"
         env:

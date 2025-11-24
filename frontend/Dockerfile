@@ -13,8 +13,8 @@ ENV NODE_ENV=production \
 # Enable corepack for pnpm
 RUN corepack enable
 
-# Create non-root user
-RUN groupadd -r vite && useradd -r -g vite vite
+# Create non-root user with home directory
+RUN groupadd -r vite && useradd -r -g vite -m -d /home/vite vite
 
 # ==============================================================================
 # Dependencies stage: Install dependencies
@@ -57,7 +57,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 
 # Set ownership
-RUN chown -R vite:vite /app
+RUN chown -R vite:vite /app /home/vite
 
 # Switch to non-root user
 USER vite

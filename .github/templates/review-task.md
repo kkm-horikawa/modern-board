@@ -24,6 +24,10 @@ gh pr list --state open --json number,title,isDraft | jq '.[] | select(.isDraft 
 # PRの詳細を確認
 gh pr view {PR_NUMBER}
 
+# ブランチ名を取得
+BRANCH_NAME=$(gh pr view {PR_NUMBER} --json headRefName --jq '.headRefName')
+echo "ブランチ名: $BRANCH_NAME"
+
 # 変更内容を確認
 gh pr diff {PR_NUMBER}
 
@@ -94,12 +98,39 @@ gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了し�
 # レビューコメントを投稿
 gh pr review {PR_NUMBER} --comment --body "レビューしました。いくつか問題があるため、修正用のIssueを作成します。"
 
+# ブランチ名を取得
+BRANCH_NAME=$(gh pr view {PR_NUMBER} --json headRefName --jq '.headRefName')
+
 # 問題点をまとめたIssueを作成
 gh issue create \
-  --title "Fix: PR #{PR_NUMBER} のレビュー指摘事項" \
+  --title "Fix: PR #{PR_NUMBER} (${BRANCH_NAME}) のレビュー指摘事項" \
   --body "## 概要
 
 PR #{PR_NUMBER} のレビューで以下の問題が見つかりました。
+
+**対象ブランチ:** \`${BRANCH_NAME}\`
+
+**重要:** このIssueは既存のPR #{PR_NUMBER} のブランチ \`${BRANCH_NAME}\` に対して修正を行います。
+新しいブランチを作成せず、このブランチをチェックアウトして修正してください。
+
+## 修正手順
+
+\`\`\`bash
+# 対象ブランチをチェックアウト
+git fetch origin
+git checkout ${BRANCH_NAME}
+git pull origin ${BRANCH_NAME}
+
+# 修正を実施
+# ...
+
+# コミット＆プッシュ
+git add .
+git commit -m \"fix: レビュー指摘事項の修正\"
+git push origin ${BRANCH_NAME}
+
+# PR #{PR_NUMBER} が自動的に更新されます
+\`\`\`
 
 ## 問題点
 
@@ -117,14 +148,15 @@ PR #{PR_NUMBER} のレビューで以下の問題が見つかりました。
 
 ## 関連PR
 
-- #{PR_NUMBER}
+- #{PR_NUMBER} (ブランチ: \`${BRANCH_NAME}\`)
 
 ## チェックリスト
 
+- [ ] ブランチ \`${BRANCH_NAME}\` をチェックアウト
 - [ ] 問題点1の修正
 - [ ] 問題点2の修正
 - [ ] テストの追加
-- [ ] ドキュメントの更新" \
+- [ ] コミット＆プッシュして PR #{PR_NUMBER} を更新" \
   --label "bug,priority:high" \
   --assignee "@me"
 
@@ -165,9 +197,11 @@ gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了し�
 
 ### 作成したIssue（問題があった場合）
 
-1. **Issue #{番号}: Fix: PR #{PR番号} のレビュー指摘事項**
+1. **Issue #{番号}: Fix: PR #{PR番号} ({ブランチ名}) のレビュー指摘事項**
+   - 対象ブランチ: {ブランチ名}
    - 問題点: {要約}
    - 優先度: high
+   - 修正方法: 既存のPRブランチに対して修正コミットを追加
 
 ---
 
@@ -190,5 +224,7 @@ gh issue close {ISSUE_NUMBER} --comment "PR #{PR_NUMBER} でマージ完了し�
 - **丁寧にレビューしてください**（チェックリストを活用）
 - **必ずマージまたはIssue発行を実行してください**（コメントだけで終わらせない）
 - **Issueには具体的な修正内容を記載してください**
+- **修正Issueには必ず対象ブランチ名を明記してください**
+- **新しいブランチではなく、既存のPRブランチに対して修正してください**
 - **承認する前に必ず動作確認してください**
 - **マージ後はブランチを削除してください**

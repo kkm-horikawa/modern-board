@@ -25,22 +25,28 @@ jobs:
           # 現在の日時を取得
           DATE=$(date -u +%Y-%m-%d-%H%M)
 
-          # テンプレートを読み込んでIssueを作成
-          gh issue create \
+          # テンプレートを読み込んでIssueを作成し、URLを取得
+          ISSUE_URL=$(gh issue create \
             --title "DAILY-${DATE}: プロジェクト管理とタスク優先順位付け" \
             --body-file .github/templates/project-management-issue.md \
             --label "project-management,automated,priority:critical" \
-            --milestone "マイルストーン0: 自動化基盤構築"
+            --milestone "マイルストーン0: 自動化基盤構築")
 
-          echo "✅ プロジェクト管理Issueを作成しました: DAILY-${DATE}"
+          # URLからIssue番号を抽出
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+
+          echo "✅ プロジェクト管理Issueを作成しました: Issue #${ISSUE_NUMBER}"
+
+          # 次のステップで使えるように環境変数に保存
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Mention Claude for analysis
         if: success()
         run: |
-          # 作成したIssueの番号を取得
-          ISSUE_NUMBER=$(gh issue list --label "project-management" --limit 1 --json number --jq '.[0].number')
+          # 前のステップで保存したIssue番号を使用
+          ISSUE_NUMBER=${{ env.ISSUE_NUMBER }}
 
           # Claudeをメンションして分析を依頼（一時ファイルを使用）
           cat > /tmp/claude-mention.md << 'ENDOFFILE'

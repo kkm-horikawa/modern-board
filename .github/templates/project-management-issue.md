@@ -289,6 +289,7 @@ gh pr list --state open --search "in:title Issue番号 OR in:body Closes OR in:b
 **実行可能なアクション:**
 - 最優先Issueを実装する（**Draft PRが存在しないことを確認後**）
 - PRをレビューする（コメント投稿、Approve/Request Changes）
+- PRをdevelopブランチにマージする（レビュー済み、CI通過済みの場合）
 - 新しいIssueを作成する（バグ、新機能、改善）
 - Issueにマイルストーンを割り当てる
 - プロジェクトボードを更新する

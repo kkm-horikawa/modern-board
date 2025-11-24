@@ -250,6 +250,14 @@ class TestUserSessionModel:
 class TestThreadModel:
     """Threadモデルのテスト."""
 
+    def setup_method(self):
+        """各テスト前の共通セットアップ.
+
+        スレッドテストで使用する基本データを作成する。
+        """
+        # ハッピーパス: 基本的なカテゴリを作成
+        self.category = Category.objects.create(name="雑談", slug="chat")
+
     def test_create_thread_success(self):
         """【正常系】スレッドの作成が正しく動作する.
 
@@ -262,22 +270,18 @@ class TestThreadModel:
         - ブールフィールドのデフォルト値が正しく設定されること
 
         【テスト手順】
-        1. カテゴリを作成
-        2. 必須フィールドを指定してスレッドを作成
-        3. 各フィールドの値が正しく保存されていることを確認
+        1. 必須フィールドを指定してスレッドを作成
+        2. 各フィールドの値が正しく保存されていることを確認
 
         【期待する結果】
         スレッドが正常に作成され、全てのフィールドが期待通りの値を持つ
         """
-        # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-
         # Act
-        thread = Thread.objects.create(title="テストスレッド", category=category)
+        thread = Thread.objects.create(title="テストスレッド", category=self.category)
 
         # Assert
         assert thread.title == "テストスレッド"
-        assert thread.category == category
+        assert thread.category == self.category
         assert thread.post_count == 0
         assert thread.view_count == 0
         assert thread.momentum == 0.0
@@ -296,7 +300,7 @@ class TestThreadModel:
         - 関連付けたタグがQuerySetで取得できること
 
         【テスト手順】
-        1. カテゴリとタグを作成
+        1. タグを作成
         2. スレッドを作成してタグを関連付け
         3. 関連付けたタグが正しく取得できることを確認
 
@@ -304,10 +308,11 @@ class TestThreadModel:
         スレッドに複数のタグが正しく関連付けられる
         """
         # Arrange
-        category = Category.objects.create(name="プログラミング", slug="programming")
         tag1 = Tag.objects.create(name="Python", slug="python")
         tag2 = Tag.objects.create(name="Django", slug="django")
-        thread = Thread.objects.create(title="Djangoチュートリアル", category=category)
+        thread = Thread.objects.create(
+            title="Djangoチュートリアル", category=self.category
+        )
 
         # Act
         thread.tags.add(tag1, tag2)
@@ -336,12 +341,11 @@ class TestThreadModel:
         ピン留めスレッドが先頭に表示される
         """
         # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
         thread1 = Thread.objects.create(
-            title="通常スレッド", category=category, is_pinned=False
+            title="通常スレッド", category=self.category, is_pinned=False
         )
         thread2 = Thread.objects.create(
-            title="ピン留めスレッド", category=category, is_pinned=True
+            title="ピン留めスレッド", category=self.category, is_pinned=True
         )
 
         # Act
@@ -356,6 +360,17 @@ class TestThreadModel:
 class TestPostModel:
     """Postモデルのテスト."""
 
+    def setup_method(self):
+        """各テスト前の共通セットアップ.
+
+        レステストで使用する基本データを作成する。
+        """
+        # ハッピーパス: カテゴリとスレッドを作成
+        self.category = Category.objects.create(name="雑談", slug="chat")
+        self.thread = Thread.objects.create(
+            title="テストスレッド", category=self.category
+        )
+
     def test_create_post_success(self):
         """【正常系】レスの作成が正しく動作する.
 
@@ -368,24 +383,19 @@ class TestPostModel:
         - __str__メソッドが適切な文字列を返すこと
 
         【テスト手順】
-        1. カテゴリとスレッドを作成
-        2. 必須フィールドを指定してレスを作成
-        3. 各フィールドの値が正しく保存されていることを確認
+        1. 必須フィールドを指定してレスを作成
+        2. 各フィールドの値が正しく保存されていることを確認
 
         【期待する結果】
         レスが正常に作成され、全てのフィールドが期待通りの値を持つ
         """
-        # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
-
         # Act
         post = Post.objects.create(
-            thread=thread, content="テスト投稿", post_number=1, is_op=True
+            thread=self.thread, content="テスト投稿", post_number=1, is_op=True
         )
 
         # Assert
-        assert post.thread == thread
+        assert post.thread == self.thread
         assert post.content == "テスト投稿"
         assert post.post_number == 1
         assert post.is_op
@@ -402,22 +412,19 @@ class TestPostModel:
         - データベースレベルでユニーク制約が機能していること
 
         【テスト手順】
-        1. スレッドを作成
-        2. post_number=1でレスを作成
-        3. 同じスレッド・同じpost_numberでレスを作成しようとする
-        4. IntegrityErrorが発生することを確認
+        1. post_number=1でレスを作成
+        2. 同じスレッド・同じpost_numberでレスを作成しようとする
+        3. IntegrityErrorが発生することを確認
 
         【期待する結果】
         IntegrityErrorが発生し、重複したレスは作成されない
         """
         # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
-        Post.objects.create(thread=thread, content="投稿1", post_number=1)
+        Post.objects.create(thread=self.thread, content="投稿1", post_number=1)
 
         # Act & Assert
         with pytest.raises(IntegrityError):
-            Post.objects.create(thread=thread, content="投稿2", post_number=1)
+            Post.objects.create(thread=self.thread, content="投稿2", post_number=1)
 
     def test_post_with_reply_to(self):
         """【動作確認】レスに返信元を設定できる.
@@ -430,24 +437,21 @@ class TestPostModel:
         - 返信元レスから返信レスを逆参照できること
 
         【テスト手順】
-        1. スレッドを作成
-        2. 元投稿レスを作成
-        3. 返信レスを作成してreply_toを設定
-        4. 関連が正しく設定されていることを確認
+        1. 元投稿レスを作成
+        2. 返信レスを作成してreply_toを設定
+        3. 関連が正しく設定されていることを確認
 
         【期待する結果】
         返信機能が正しく動作し、双方向の参照が可能
         """
         # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
         post1 = Post.objects.create(
-            thread=thread, content="元投稿", post_number=1, is_op=True
+            thread=self.thread, content="元投稿", post_number=1, is_op=True
         )
 
         # Act
         post2 = Post.objects.create(
-            thread=thread, content="返信", post_number=2, reply_to=post1
+            thread=self.thread, content="返信", post_number=2, reply_to=post1
         )
 
         # Assert
@@ -459,6 +463,21 @@ class TestPostModel:
 @pytest.mark.django_db
 class TestReactionModel:
     """Reactionモデルのテスト."""
+
+    def setup_method(self):
+        """各テスト前の共通セットアップ.
+
+        リアクションテストで使用する基本データを作成する。
+        """
+        # ハッピーパス: カテゴリ、スレッド、レス、セッションを作成
+        self.category = Category.objects.create(name="雑談", slug="chat")
+        self.thread = Thread.objects.create(
+            title="テストスレッド", category=self.category
+        )
+        self.post = Post.objects.create(
+            thread=self.thread, content="投稿", post_number=1
+        )
+        self.session = UserSession.objects.create(temporary_name="ID:user1")
 
     def test_create_reaction_success(self):
         """【正常系】リアクションの作成が正しく動作する.
@@ -472,27 +491,20 @@ class TestReactionModel:
         - __str__メソッドが適切な文字列を返すこと
 
         【テスト手順】
-        1. カテゴリ、スレッド、レス、セッションを作成
-        2. 必須フィールドを指定してリアクションを作成
-        3. 各フィールドの値が正しく保存されていることを確認
+        1. 必須フィールドを指定してリアクションを作成
+        2. 各フィールドの値が正しく保存されていることを確認
 
         【期待する結果】
         リアクションが正常に作成され、全てのフィールドが期待通りの値を持つ
         """
-        # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
-        post = Post.objects.create(thread=thread, content="投稿", post_number=1)
-        session = UserSession.objects.create(temporary_name="ID:user1")
-
         # Act
         reaction = Reaction.objects.create(
-            post=post, user_session=session, reaction_type="like"
+            post=self.post, user_session=self.session, reaction_type="like"
         )
 
         # Assert
-        assert reaction.post == post
-        assert reaction.user_session == session
+        assert reaction.post == self.post
+        assert reaction.user_session == self.session
         assert reaction.reaction_type == "like"
         assert "like" in str(reaction)
 
@@ -508,25 +520,22 @@ class TestReactionModel:
         - 重複リアクションが防止されること
 
         【テスト手順】
-        1. レスとセッションを作成
-        2. 特定のリアクションを作成
-        3. 同じレス・同じセッション・同じリアクションタイプで再度作成を試みる
-        4. IntegrityErrorが発生することを確認
+        1. 特定のリアクションを作成
+        2. 同じレス・同じセッション・同じリアクションタイプで再度作成を試みる
+        3. IntegrityErrorが発生することを確認
 
         【期待する結果】
         IntegrityErrorが発生し、重複したリアクションは作成されない
         """
         # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
-        post = Post.objects.create(thread=thread, content="投稿", post_number=1)
-        session = UserSession.objects.create(temporary_name="ID:user1")
-        Reaction.objects.create(post=post, user_session=session, reaction_type="like")
+        Reaction.objects.create(
+            post=self.post, user_session=self.session, reaction_type="like"
+        )
 
         # Act & Assert - 重複リアクションはエラー
         with pytest.raises(IntegrityError):
             Reaction.objects.create(
-                post=post, user_session=session, reaction_type="like"
+                post=self.post, user_session=self.session, reaction_type="like"
             )
 
     def test_different_reaction_types_allowed(self):
@@ -540,29 +549,22 @@ class TestReactionModel:
         - unique_together制約がreaction_typeも含めて評価されていること
 
         【テスト手順】
-        1. レスとセッションを作成
-        2. "like"リアクションを作成
-        3. 同じセッション・同じレスで"funny"リアクションを作成
-        4. 両方のリアクションが正常に作成されることを確認
+        1. "like"リアクションを作成
+        2. 同じセッション・同じレスで"funny"リアクションを作成
+        3. 両方のリアクションが正常に作成されることを確認
 
         【期待する結果】
         異なるリアクションタイプであれば複数作成可能
         """
-        # Arrange
-        category = Category.objects.create(name="雑談", slug="chat")
-        thread = Thread.objects.create(title="テストスレッド", category=category)
-        post = Post.objects.create(thread=thread, content="投稿", post_number=1)
-        session = UserSession.objects.create(temporary_name="ID:user1")
-
         # Act
         reaction1 = Reaction.objects.create(
-            post=post, user_session=session, reaction_type="like"
+            post=self.post, user_session=self.session, reaction_type="like"
         )
         reaction2 = Reaction.objects.create(
-            post=post, user_session=session, reaction_type="funny"
+            post=self.post, user_session=self.session, reaction_type="funny"
         )
 
         # Assert
         assert reaction1.reaction_type == "like"
         assert reaction2.reaction_type == "funny"
-        assert post.reactions.count() == 2
+        assert self.post.reactions.count() == 2

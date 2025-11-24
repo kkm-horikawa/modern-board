@@ -2,13 +2,15 @@
 name = "modern-board-backend"
 version = "0.1.0"
 description = "Modern bulletin board application backend"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "django>=5.2.8",
     "wagtail>=7.2",
     "djangorestframework>=3.16.1",
+    "drf-spectacular>=0.29.0",
     "django-cors-headers>=4.9.0",
     "django-filter>=25.2",
+    "gunicorn>=23.0.0",
 ]
 
 [project.optional-dependencies]
@@ -30,7 +32,7 @@ build-backend = "setuptools.build_meta"
 # Ruff configuration
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py313"
 extend-exclude = ["migrations", "static", "media", ".venv"]
 
 [tool.ruff.lint]

@@ -31,22 +31,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: develop
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Parse comment for actions
-        id: parse
+      - name: Get Issue Number
+        id: get_issue
         run: |
-          # コメント本文を取得
-          COMMENT_BODY='${{ github.event.comment.body }}'
-
           # Issue番号を取得
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             ISSUE_NUMBER="${{ github.event.issue.number }}"
@@ -55,50 +42,33 @@ jobs:
           fi
 
           echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
-
-          # parse_actions.pyを実行
-          RESULT=$(ISSUE_NUMBER=$ISSUE_NUMBER python3 .github/scripts/parse_actions.py "$COMMENT_BODY")
-
-          echo "Parse result:"
-          echo "$RESULT"
-
-          # アクションが抽出できたかチェック
-          HAS_ACTIONS=$(echo "$RESULT" | jq -r '.has_actions')
-          echo "has_actions=$HAS_ACTIONS" >> $GITHUB_OUTPUT
-
-          if [ "$HAS_ACTIONS" = "true" ]; then
-            # Claude向けの指示文を抽出
-            INSTRUCTIONS=$(echo "$RESULT" | jq -r '.instructions')
-
-            # 指示文をファイルに保存（マルチライン対応）
-            echo "$INSTRUCTIONS" > /tmp/claude-instructions.md
-
-            echo "✅ アクションを検出しました"
-            echo "📝 指示文:"
-            cat /tmp/claude-instructions.md
-          else
-            echo "ℹ️ 実行可能なアクションは見つかりませんでした"
-          fi
+          echo "✅ Issue #$ISSUE_NUMBER を処理します"
 
       - name: Dispatch to Claude
-        if: steps.parse.outputs.has_actions == 'true'
         run: |
           ISSUE_NUMBER=${{ env.ISSUE_NUMBER }}
 
+          # Claudeに上記コメントを読んで必要なアクションを実行するよう指示
+          cat > /tmp/claude-instruction.md << 'ENDOFFILE'
+          @claude
+
+          上記のコメントを読んで、以下の対応が必要か判断し、必要であれば実行してください：
+
+          - **新規Issue作成**: バグ報告、改善提案、タスク追加など
+          - **既存Issue整理**: ラベル更新、優先度変更、重複クローズなど
+          - **PR関連**: マージ、レビュー、Draft→Readyへの変更など
+          - **実装確認**: コード品質、テストカバレッジ、ドキュメント更新など
+          - **マイルストーン管理**: 進捗確認、完了処理、次マイルストーン準備など
+
+          判断基準：
+          - 明確なアクション項目が記載されている場合は実行
+          - 曖昧な場合は質問またはスキップ
+          - 完了後は簡潔にサマリーを報告
+          ENDOFFILE
+
           # PATアカウントを使ってClaudeをメンション
-          gh issue comment $ISSUE_NUMBER --body-file /tmp/claude-instructions.md
+          gh issue comment $ISSUE_NUMBER --body-file /tmp/claude-instruction.md
 
           echo "✅ Issue #$ISSUE_NUMBER にClaude向けの指示を投稿しました"
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-      - name: Log dispatch result
-        if: always()
-        run: |
-          if [ "${{ steps.parse.outputs.has_actions }}" = "true" ]; then
-            echo "✅ アクションディスパッチ完了"
-            echo "   - Issue #${{ env.ISSUE_NUMBER }}"
-            echo "   - Claudeによる自動実行が開始されます"
-          else
-            echo "ℹ️ アクションが見つからなかったため、ディスパッチをスキップしました"
-          fi

@@ -40,7 +40,7 @@ jobs:
           # 次のステップで使えるように環境変数に保存
           echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Mention Claude for analysis
         if: success()
@@ -78,7 +78,7 @@ jobs:
 
           echo "✅ Issue #$ISSUE_NUMBER にClaudeをメンションしました"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Notify Slack on Success
         if: success()

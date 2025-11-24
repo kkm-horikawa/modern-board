@@ -1,0 +1,104 @@
+name: Claude Action Dispatcher
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  dispatch-actions:
+    # 以下の条件で起動:
+    # 1. コメント投稿者がgithub-actions[bot]またはClaude Code
+    # 2. コメント内容にアクション関連のキーワードが含まれる
+    # 3. @claudeメンションがまだ含まれていない（無限ループ防止）
+    if: |
+      (github.event.comment.user.login == 'github-actions[bot]' ||
+       contains(github.event.comment.body, 'Generated with [Claude Code]')) &&
+      !contains(github.event.comment.body, '@claude') &&
+      (contains(github.event.comment.body, 'アクション') ||
+       contains(github.event.comment.body, 'TODO') ||
+       contains(github.event.comment.body, '次のステップ') ||
+       contains(github.event.comment.body, '推奨') ||
+       contains(github.event.comment.body, 'Issue') ||
+       contains(github.event.comment.body, 'PR'))
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Parse comment for actions
+        id: parse
+        run: |
+          # コメント本文を取得
+          COMMENT_BODY='${{ github.event.comment.body }}'
+
+          # Issue番号を取得
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            ISSUE_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+
+          # parse_actions.pyを実行
+          RESULT=$(ISSUE_NUMBER=$ISSUE_NUMBER python3 .github/scripts/parse_actions.py "$COMMENT_BODY")
+
+          echo "Parse result:"
+          echo "$RESULT"
+
+          # アクションが抽出できたかチェック
+          HAS_ACTIONS=$(echo "$RESULT" | jq -r '.has_actions')
+          echo "has_actions=$HAS_ACTIONS" >> $GITHUB_OUTPUT
+
+          if [ "$HAS_ACTIONS" = "true" ]; then
+            # Claude向けの指示文を抽出
+            INSTRUCTIONS=$(echo "$RESULT" | jq -r '.instructions')
+
+            # 指示文をファイルに保存（マルチライン対応）
+            echo "$INSTRUCTIONS" > /tmp/claude-instructions.md
+
+            echo "✅ アクションを検出しました"
+            echo "📝 指示文:"
+            cat /tmp/claude-instructions.md
+          else
+            echo "ℹ️ 実行可能なアクションは見つかりませんでした"
+          fi
+
+      - name: Dispatch to Claude
+        if: steps.parse.outputs.has_actions == 'true'
+        run: |
+          ISSUE_NUMBER=${{ env.ISSUE_NUMBER }}
+
+          # PATアカウントを使ってClaudeをメンション
+          gh issue comment $ISSUE_NUMBER --body-file /tmp/claude-instructions.md
+
+          echo "✅ Issue #$ISSUE_NUMBER にClaude向けの指示を投稿しました"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Log dispatch result
+        if: always()
+        run: |
+          if [ "${{ steps.parse.outputs.has_actions }}" = "true" ]; then
+            echo "✅ アクションディスパッチ完了"
+            echo "   - Issue #${{ env.ISSUE_NUMBER }}"
+            echo "   - Claudeによる自動実行が開始されます"
+          else
+            echo "ℹ️ アクションが見つからなかったため、ディスパッチをスキップしました"
+          fi

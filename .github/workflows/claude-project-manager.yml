@@ -1,0 +1,40 @@
+name: Claude Project Manager
+
+on:
+  schedule:
+    # 毎日 9:00, 15:00, 21:00 (JST = UTC+9 なので 0:00, 6:00, 12:00 UTC)
+    - cron: '0 0,6,12 * * *'
+  workflow_dispatch:  # 手動トリガーも可能
+
+jobs:
+  create-management-issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Create project management issue
+        run: |
+          # 現在の日時を取得
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+
+          # テンプレートを読み込んでIssueを作成
+          gh issue create \
+            --title "DAILY-${DATE}: プロジェクト管理とタスク優先順位付け" \
+            --body-file .github/templates/project-management-issue.md \
+            --label "project-management,automated,priority:critical" \
+            --milestone "マイルストーン0: 自動化基盤構築"
+
+          echo "✅ プロジェクト管理Issueを作成しました: DAILY-${DATE}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send notification (optional)
+        if: success()
+        run: |
+          echo "📋 プロジェクト管理タスクが作成されました。"
+          echo "Claudeが自動的に処理を開始します。"
+          # ここにSlack/Discord通知を追加可能

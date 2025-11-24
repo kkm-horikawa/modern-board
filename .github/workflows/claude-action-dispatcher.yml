@@ -14,12 +14,12 @@ permissions:
 jobs:
   dispatch-actions:
     # 以下の条件で起動:
-    # 1. コメント投稿者がgithub-actions[bot]またはClaude Code
+    # 1. コメント投稿者がgithub-actions[bot]またはClaude（Co-Authored-By: Claudeを含む）
     # 2. コメント内容にアクション関連のキーワードが含まれる
     # 3. @claudeメンションがまだ含まれていない（無限ループ防止）
     if: |
       (github.event.comment.user.login == 'github-actions[bot]' ||
-       contains(github.event.comment.body, 'Generated with [Claude Code]')) &&
+       contains(github.event.comment.body, 'Co-Authored-By: Claude')) &&
       !contains(github.event.comment.body, '@claude') &&
       (contains(github.event.comment.body, 'アクション') ||
        contains(github.event.comment.body, 'TODO') ||

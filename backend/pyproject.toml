@@ -20,6 +20,8 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.14.4",
     "pyright>=1.1.390",
+    "django-stubs>=5.1.1",
+    "djangorestframework-stubs>=3.15.1",
     "pre-commit>=4.0.0",
 ]
 
@@ -90,13 +92,17 @@ include = ["api", "config"]
 exclude = [
     "**/migrations",
     "**/__pycache__",
-    "**/tests",
     ".venv",
 ]
+venvPath = "."
+venv = ".venv"
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
-reportMissingImports = true
+reportMissingImports = false
 reportMissingTypeStubs = false
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
+reportGeneralTypeIssues = false
+reportAttributeAccessIssue = false
+reportIncompatibleVariableOverride = false

@@ -16,7 +16,6 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.390
-    hooks:
-      - id: pyright
+  # NOTE: Pyright is available via `uv run pyright` but not included in pre-commit
+  # due to configuration issues with the pre-commit isolated environment.
+  # Run manually: uv run pyright

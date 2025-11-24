@@ -16,7 +16,24 @@ class TestCategoryModel:
     """Categoryモデルのテスト."""
 
     def test_create_category_success(self):
-        """正常系: カテゴリが正しく作成される."""
+        """【正常系】カテゴリの作成が正しく動作する.
+
+        【テストの意図】
+        カテゴリが正しいデフォルト値で作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（name, slug）でカテゴリを作成できること
+        - display_orderのデフォルト値が0であること
+        - __str__メソッドがnameを返すこと
+
+        【テスト手順】
+        1. 必須フィールドを指定してカテゴリを作成
+        2. 各フィールドの値が正しく保存されていることを確認
+        3. デフォルト値が正しく設定されていることを確認
+
+        【期待する結果】
+        カテゴリが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange & Act
         category = Category.objects.create(
             name="プログラミング",
@@ -31,7 +48,23 @@ class TestCategoryModel:
         assert str(category) == "プログラミング"
 
     def test_category_unique_name(self):
-        """異常系: 同じ名前のカテゴリは作成できない."""
+        """【異常系】同じ名前のカテゴリは作成できない.
+
+        【テストの意図】
+        カテゴリ名のユニーク制約が正しく機能することを保証します。
+
+        【何を保証するか】
+        - 同じnameを持つカテゴリを2つ作成しようとするとIntegrityErrorが発生すること
+        - データベースレベルでユニーク制約が機能していること
+
+        【テスト手順】
+        1. 特定の名前でカテゴリを作成
+        2. 同じ名前で別のカテゴリを作成しようとする
+        3. IntegrityErrorが発生することを確認
+
+        【期待する結果】
+        IntegrityErrorが発生し、重複したカテゴリは作成されない
+        """
         # Arrange
         Category.objects.create(name="雑談", slug="chat")
 
@@ -40,7 +73,23 @@ class TestCategoryModel:
             Category.objects.create(name="雑談", slug="chat2")
 
     def test_category_ordering(self):
-        """カテゴリが表示順序でソートされる."""
+        """【動作確認】カテゴリが表示順序でソートされる.
+
+        【テストの意図】
+        Meta.orderingの設定が正しく動作することを保証します。
+
+        【何を保証するか】
+        - QuerySetがdisplay_order昇順、name昇順でソートされること
+        - 複数のカテゴリを作成した際に期待通りの順序で取得できること
+
+        【テスト手順】
+        1. 異なるdisplay_orderを持つ3つのカテゴリを作成
+        2. Category.objects.all()でカテゴリを取得
+        3. 取得順序がdisplay_order昇順であることを確認
+
+        【期待する結果】
+        カテゴリがdisplay_order昇順でソートされて取得される
+        """
         # Arrange
         cat1 = Category.objects.create(name="カテゴリ1", slug="cat1", display_order=3)
         cat2 = Category.objects.create(name="カテゴリ2", slug="cat2", display_order=1)
@@ -60,7 +109,22 @@ class TestTagModel:
     """Tagモデルのテスト."""
 
     def test_create_tag_success(self):
-        """正常系: タグが正しく作成される."""
+        """【正常系】タグの作成が正しく動作する.
+
+        【テストの意図】
+        タグが正しく作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（name, slug）でタグを作成できること
+        - __str__メソッドがnameを返すこと
+
+        【テスト手順】
+        1. 必須フィールドを指定してタグを作成
+        2. 各フィールドの値が正しく保存されていることを確認
+
+        【期待する結果】
+        タグが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange & Act
         tag = Tag.objects.create(name="Python", slug="python")
 
@@ -70,7 +134,22 @@ class TestTagModel:
         assert str(tag) == "Python"
 
     def test_tag_unique_name(self):
-        """異常系: 同じ名前のタグは作成できない."""
+        """【異常系】同じ名前のタグは作成できない.
+
+        【テストの意図】
+        タグ名のユニーク制約が正しく機能することを保証します。
+
+        【何を保証するか】
+        - 同じnameを持つタグを2つ作成しようとするとIntegrityErrorが発生すること
+
+        【テスト手順】
+        1. 特定の名前でタグを作成
+        2. 同じ名前で別のタグを作成しようとする
+        3. IntegrityErrorが発生することを確認
+
+        【期待する結果】
+        IntegrityErrorが発生し、重複したタグは作成されない
+        """
         # Arrange
         Tag.objects.create(name="React", slug="react")
 
@@ -84,7 +163,24 @@ class TestUserSessionModel:
     """UserSessionモデルのテスト."""
 
     def test_create_user_session_success(self):
-        """正常系: ユーザーセッションが正しく作成される."""
+        """【正常系】ユーザーセッションの作成が正しく動作する.
+
+        【テストの意図】
+        ユーザーセッションが正しいデフォルト値で作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（temporary_name）でセッションを作成できること
+        - session_idが自動的にUUIDとして生成されること
+        - 数値フィールドのデフォルト値が正しく設定されること
+
+        【テスト手順】
+        1. temporary_nameを指定してセッションを作成
+        2. 各フィールドの値が正しく保存されていることを確認
+        3. デフォルト値が正しく設定されていることを確認
+
+        【期待する結果】
+        セッションが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange & Act
         session = UserSession.objects.create(temporary_name="ID:abc123")
 
@@ -97,7 +193,23 @@ class TestUserSessionModel:
         assert isinstance(session.session_id, uuid.UUID)
 
     def test_user_session_auto_uuid(self):
-        """セッションIDが自動生成される."""
+        """【動作確認】セッションIDが自動生成される.
+
+        【テストの意図】
+        session_idが自動的にユニークなUUIDとして生成されることを保証します。
+
+        【何を保証するか】
+        - 複数のセッションを作成した際に、それぞれ異なるUUIDが生成されること
+        - UUIDの型がuuid.UUIDであること
+
+        【テスト手順】
+        1. 2つのセッションを作成
+        2. それぞれのsession_idが異なることを確認
+        3. UUIDの型を確認
+
+        【期待する結果】
+        各セッションがユニークなUUIDを持つ
+        """
         # Arrange & Act
         session1 = UserSession.objects.create(temporary_name="ID:user1")
         session2 = UserSession.objects.create(temporary_name="ID:user2")
@@ -108,7 +220,23 @@ class TestUserSessionModel:
         assert isinstance(session2.session_id, uuid.UUID)
 
     def test_user_session_unique_session_id(self):
-        """異常系: 同じセッションIDは作成できない."""
+        """【異常系】同じセッションIDは作成できない.
+
+        【テストの意図】
+        session_idのユニーク制約が正しく機能することを保証します。
+
+        【何を保証するか】
+        - 同じsession_idを持つセッションを2つ作成しようとすると
+          IntegrityErrorが発生すること
+
+        【テスト手順】
+        1. 特定のUUIDでセッションを作成
+        2. 同じUUIDで別のセッションを作成しようとする
+        3. IntegrityErrorが発生することを確認
+
+        【期待する結果】
+        IntegrityErrorが発生し、重複したセッションは作成されない
+        """
         # Arrange
         session_id = uuid.uuid4()
         UserSession.objects.create(temporary_name="ID:user1", session_id=session_id)
@@ -123,7 +251,24 @@ class TestThreadModel:
     """Threadモデルのテスト."""
 
     def test_create_thread_success(self):
-        """正常系: スレッドが正しく作成される."""
+        """【正常系】スレッドの作成が正しく動作する.
+
+        【テストの意図】
+        スレッドが正しいデフォルト値で作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（title, category）でスレッドを作成できること
+        - 数値フィールドのデフォルト値が正しく設定されること
+        - ブールフィールドのデフォルト値が正しく設定されること
+
+        【テスト手順】
+        1. カテゴリを作成
+        2. 必須フィールドを指定してスレッドを作成
+        3. 各フィールドの値が正しく保存されていることを確認
+
+        【期待する結果】
+        スレッドが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
 
@@ -141,7 +286,23 @@ class TestThreadModel:
         assert str(thread) == "テストスレッド"
 
     def test_thread_with_tags(self):
-        """スレッドにタグを関連付けられる."""
+        """【動作確認】スレッドにタグを関連付けられる.
+
+        【テストの意図】
+        ManyToManyFieldによるタグの関連付けが正しく動作することを保証します。
+
+        【何を保証するか】
+        - スレッドに複数のタグを関連付けられること
+        - 関連付けたタグがQuerySetで取得できること
+
+        【テスト手順】
+        1. カテゴリとタグを作成
+        2. スレッドを作成してタグを関連付け
+        3. 関連付けたタグが正しく取得できることを確認
+
+        【期待する結果】
+        スレッドに複数のタグが正しく関連付けられる
+        """
         # Arrange
         category = Category.objects.create(name="プログラミング", slug="programming")
         tag1 = Tag.objects.create(name="Python", slug="python")
@@ -157,7 +318,23 @@ class TestThreadModel:
         assert tag2 in thread.tags.all()
 
     def test_thread_ordering(self):
-        """スレッドがピン留め・最終投稿日時でソートされる."""
+        """【動作確認】スレッドがピン留め・最終投稿日時でソートされる.
+
+        【テストの意図】
+        Meta.orderingの設定が正しく動作することを保証します。
+
+        【何を保証するか】
+        - QuerySetがis_pinned降順（Trueが先）でソートされること
+        - ピン留めスレッドが通常スレッドより前に表示されること
+
+        【テスト手順】
+        1. ピン留めスレッドと通常スレッドを作成
+        2. Thread.objects.all()でスレッドを取得
+        3. 取得順序がピン留め優先であることを確認
+
+        【期待する結果】
+        ピン留めスレッドが先頭に表示される
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread1 = Thread.objects.create(
@@ -180,7 +357,24 @@ class TestPostModel:
     """Postモデルのテスト."""
 
     def test_create_post_success(self):
-        """正常系: レスが正しく作成される."""
+        """【正常系】レスの作成が正しく動作する.
+
+        【テストの意図】
+        レスが正しく作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（thread, content, post_number）でレスを作成できること
+        - is_opフラグが正しく設定されること
+        - __str__メソッドが適切な文字列を返すこと
+
+        【テスト手順】
+        1. カテゴリとスレッドを作成
+        2. 必須フィールドを指定してレスを作成
+        3. 各フィールドの値が正しく保存されていることを確認
+
+        【期待する結果】
+        レスが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)
@@ -198,7 +392,24 @@ class TestPostModel:
         assert "Post #1" in str(post)
 
     def test_post_unique_together_thread_and_number(self):
-        """異常系: 同じスレッド内で同じレス番号は作成できない."""
+        """【異常系】同じスレッド内で同じレス番号は作成できない.
+
+        【テストの意図】
+        unique_together制約が正しく機能することを保証します。
+
+        【何を保証するか】
+        - 同じスレッド内で同じpost_numberを持つレスを2つ作成できないこと
+        - データベースレベルでユニーク制約が機能していること
+
+        【テスト手順】
+        1. スレッドを作成
+        2. post_number=1でレスを作成
+        3. 同じスレッド・同じpost_numberでレスを作成しようとする
+        4. IntegrityErrorが発生することを確認
+
+        【期待する結果】
+        IntegrityErrorが発生し、重複したレスは作成されない
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)
@@ -209,7 +420,24 @@ class TestPostModel:
             Post.objects.create(thread=thread, content="投稿2", post_number=1)
 
     def test_post_with_reply_to(self):
-        """レスに返信元を設定できる."""
+        """【動作確認】レスに返信元を設定できる.
+
+        【テストの意図】
+        ForeignKey（self参照）による返信機能が正しく動作することを保証します。
+
+        【何を保証するか】
+        - レスに返信元レスを設定できること
+        - 返信元レスから返信レスを逆参照できること
+
+        【テスト手順】
+        1. スレッドを作成
+        2. 元投稿レスを作成
+        3. 返信レスを作成してreply_toを設定
+        4. 関連が正しく設定されていることを確認
+
+        【期待する結果】
+        返信機能が正しく動作し、双方向の参照が可能
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)
@@ -233,7 +461,24 @@ class TestReactionModel:
     """Reactionモデルのテスト."""
 
     def test_create_reaction_success(self):
-        """正常系: リアクションが正しく作成される."""
+        """【正常系】リアクションの作成が正しく動作する.
+
+        【テストの意図】
+        リアクションが正しく作成されることを保証します。
+
+        【何を保証するか】
+        - 必須フィールド（post, reaction_type）でリアクションを作成できること
+        - user_sessionとの関連が正しく設定されること
+        - __str__メソッドが適切な文字列を返すこと
+
+        【テスト手順】
+        1. カテゴリ、スレッド、レス、セッションを作成
+        2. 必須フィールドを指定してリアクションを作成
+        3. 各フィールドの値が正しく保存されていることを確認
+
+        【期待する結果】
+        リアクションが正常に作成され、全てのフィールドが期待通りの値を持つ
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)
@@ -252,7 +497,25 @@ class TestReactionModel:
         assert "like" in str(reaction)
 
     def test_reaction_unique_together(self):
-        """異常系: 同じセッションから同じレスへの同じリアクションは1回のみ."""
+        """【異常系】同じセッションから同じレスへの同じリアクションは1回のみ.
+
+        【テストの意図】
+        unique_together制約が正しく機能することを保証します。
+
+        【何を保証するか】
+        - 同じpost、user_session、reaction_typeの組み合わせで
+          リアクションを2つ作成できないこと
+        - 重複リアクションが防止されること
+
+        【テスト手順】
+        1. レスとセッションを作成
+        2. 特定のリアクションを作成
+        3. 同じレス・同じセッション・同じリアクションタイプで再度作成を試みる
+        4. IntegrityErrorが発生することを確認
+
+        【期待する結果】
+        IntegrityErrorが発生し、重複したリアクションは作成されない
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)
@@ -267,7 +530,24 @@ class TestReactionModel:
             )
 
     def test_different_reaction_types_allowed(self):
-        """同じセッションから異なるリアクションタイプは許可される."""
+        """【動作確認】同じセッションから異なるリアクションタイプは許可される.
+
+        【テストの意図】
+        同一セッションから異なるリアクションタイプは作成可能であることを保証します。
+
+        【何を保証するか】
+        - 同じセッション・同じレスでも、異なるreaction_typeであれば複数作成できること
+        - unique_together制約がreaction_typeも含めて評価されていること
+
+        【テスト手順】
+        1. レスとセッションを作成
+        2. "like"リアクションを作成
+        3. 同じセッション・同じレスで"funny"リアクションを作成
+        4. 両方のリアクションが正常に作成されることを確認
+
+        【期待する結果】
+        異なるリアクションタイプであれば複数作成可能
+        """
         # Arrange
         category = Category.objects.create(name="雑談", slug="chat")
         thread = Thread.objects.create(title="テストスレッド", category=category)

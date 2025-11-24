@@ -86,8 +86,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          # Claude Codeを実行
-          claude --non-interactive /tmp/claude-instruction.md || true
+          # Claude Codeを実行（標準入力から指示を渡す）
+          cat /tmp/claude-instruction.md | claude || echo "Claude実行完了（エラーは無視）"
 
       - name: Notify completion
         if: always()

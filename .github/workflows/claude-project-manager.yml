@@ -38,29 +38,33 @@ jobs:
           # 作成したIssueの番号を取得
           ISSUE_NUMBER=$(gh issue list --label "project-management" --limit 1 --json number --jq '.[0].number')
 
-          # Claudeをメンションして分析を依頼
-          gh issue comment $ISSUE_NUMBER --body "@claude
+          # Claudeをメンションして分析を依頼（一時ファイルを使用）
+          cat > /tmp/claude-mention.md << 'ENDOFFILE'
+          @claude
 
-プロジェクト管理タスクを実行してください。
+          プロジェクト管理タスクを実行してください。
 
-## 実行内容
-以下の情報を分析し、詳細なレポートをこのIssueにコメントで投稿してください：
+          ## 実行内容
+          以下の情報を分析し、詳細なレポートをこのIssueにコメントで投稿してください：
 
-1. **オープンなPRの確認**
-   - レビューが必要なPR
-   - CI/CDの状態
-   - マージ可能かどうか
+          1. **オープンなPRの確認**
+             - レビューが必要なPR
+             - CI/CDの状態
+             - マージ可能かどうか
 
-2. **Issueの優先順位分析**
-   - バグ、ブロッカーの有無
-   - マイルストーン進捗
-   - 次に着手すべきIssue
+          2. **Issueの優先順位分析**
+             - バグ、ブロッカーの有無
+             - マイルストーン進捗
+             - 次に着手すべきIssue
 
-3. **推奨アクション**
-   - 最優先で対応すべきこと
-   - 次のステップの提案
+          3. **推奨アクション**
+             - 最優先で対応すべきこと
+             - 次のステップの提案
 
-**重要**: Issue作成やPR作成は不要です。分析と推奨アクションの提示のみお願いします。"
+          **重要**: Issue作成やPR作成は不要です。分析と推奨アクションの提示のみお願いします。
+          ENDOFFILE
+
+          gh issue comment $ISSUE_NUMBER --body-file /tmp/claude-mention.md
 
           echo "✅ Issue #$ISSUE_NUMBER にClaudeをメンションしました"
         env:

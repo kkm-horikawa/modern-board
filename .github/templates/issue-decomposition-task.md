@@ -1,7 +1,7 @@
 ## 📦 Issue分解タスク
 
 **今すぐ実行：**
-1. `atomic`ラベルがないIssueを1つ選ぶ
+1. `atomic`ラベルも`parent`ラベルもないIssueを1つ選ぶ
 2. 分解が必要か判断
 3. 必要なら子Issueを作成（1クラス/1メソッド粒度）
 4. **子Issueに@Claudeメンションして再帰的に分解継続**
@@ -24,9 +24,9 @@
 ## 実行
 
 ```bash
-# 1. 対象Issueを選ぶ（atomicラベルがないもの）
+# 1. 対象Issueを選ぶ（atomicラベルがなく、parentラベルもないもの）
 gh issue list --state open --json number,title,labels \
-  --jq '.[] | select(.labels | map(.name) | contains(["atomic"]) | not) | .number' \
+  --jq '.[] | select(.labels | map(.name) | contains(["atomic", "parent"]) | not) | .number' \
   | head -1
 
 # 2. Issue内容を確認して分解判断

@@ -29,6 +29,8 @@ create_label_if_not_exists "issue-management" "Issue管理タスク" "D93F0B"
 create_label_if_not_exists "organization" "プロジェクト整理タスク" "0052CC"
 create_label_if_not_exists "cleanup" "ブランチ整理タスク" "5319E7"
 create_label_if_not_exists "decomposition" "Issue分解タスク" "9C27B0"
+create_label_if_not_exists "documentation" "ドキュメント関連タスク" "0075CA"
+create_label_if_not_exists "documentation-org" "ドキュメント整理タスク" "1E90FF"
 
 # Issue粒度管理ラベル
 create_label_if_not_exists "atomic" "分解不要な最小単位Issue" "00C851"

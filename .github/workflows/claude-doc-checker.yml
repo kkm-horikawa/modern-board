@@ -1,0 +1,58 @@
+name: Claude Documentation Checker
+
+on:
+  pull_request:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to check'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Create documentation check task
+        run: |
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+          PR_NUMBER=${{ github.event.pull_request.number || inputs.pr_number }}
+
+          # テンプレートを読み込んでPR番号を置換
+          TEMPLATE=$(cat .github/templates/doc-pr-check-task.md | sed "s/{PR_NUMBER}/${PR_NUMBER}/g")
+
+          # Issueを作成
+          ISSUE_URL=$(gh issue create \
+            --title "DOC-CHECK-${DATE}: PR #${PR_NUMBER} のドキュメントチェック" \
+            --body "$TEMPLATE" \
+            --label "automation,documentation")
+
+          ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Trigger Claude
+        if: success()
+        run: |
+          gh issue comment ${{ env.ISSUE_NUMBER }} --body "@claude このIssueの説明に記載されたドキュメントチェックタスクを実行してください。"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}

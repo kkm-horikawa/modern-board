@@ -5,7 +5,7 @@
  * accessibility, best practices, and SEO tests.
  */
 
-export default {
+module.exports = {
   extends: 'lighthouse:default',
 
   settings: {

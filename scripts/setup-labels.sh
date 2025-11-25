@@ -28,6 +28,12 @@ create_label_if_not_exists "review" "レビュータスク" "FBCA04"
 create_label_if_not_exists "issue-management" "Issue管理タスク" "D93F0B"
 create_label_if_not_exists "organization" "プロジェクト整理タスク" "0052CC"
 create_label_if_not_exists "cleanup" "ブランチ整理タスク" "5319E7"
+create_label_if_not_exists "decomposition" "Issue分解タスク" "9C27B0"
+
+# Issue粒度管理ラベル
+create_label_if_not_exists "atomic" "分解不要な最小単位Issue" "00C851"
+create_label_if_not_exists "parent" "子Issueを持つ親Issue" "8B4789"
+create_label_if_not_exists "child" "親Issueの一部である子Issue" "C5DEF5"
 
 # 優先度ラベル
 create_label_if_not_exists "priority:critical" "最優先で対応が必要" "B60205"

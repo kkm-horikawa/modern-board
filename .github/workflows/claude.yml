@@ -48,8 +48,9 @@ jobs:
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # prompt: 'Update the pull request description to include a summary of changes.'
 
-          # Allow gh, git, and common dev commands for full automation
-          claude_args: '--allowed-tools "Bash(gh:*)" --allowed-tools "Bash(git:*)" --allowed-tools "Bash(python:*)" --allowed-tools "Bash(python3:*)" --allowed-tools "Bash(node:*)" --allowed-tools "Bash(npm:*)" --allowed-tools "Bash(pnpm:*)" --allowed-tools "Bash(bun:*)" --allowed-tools "Bash(docker:*)" --allowed-tools "Bash(docker-compose:*)" --allowed-tools "Bash(yarn:*)" --allowed-tools "Bash(make:*)" --allowed-tools "Bash(chmod:*)" --allowed-tools "Bash(curl:*)" --allowed-tools "Bash(wget:*)"'
+          # Allow gh, git, docker, and common dev commands for full automation
+          # Note: docker compose (v2, space-separated) is the standard on ubuntu-latest
+          claude_args: '--allowed-tools "Bash(gh:*)" --allowed-tools "Bash(git:*)" --allowed-tools "Bash(python:*)" --allowed-tools "Bash(python3:*)" --allowed-tools "Bash(node:*)" --allowed-tools "Bash(npm:*)" --allowed-tools "Bash(pnpm:*)" --allowed-tools "Bash(bun:*)" --allowed-tools "Bash(docker:*)" --allowed-tools "Bash(yarn:*)" --allowed-tools "Bash(make:*)" --allowed-tools "Bash(chmod:*)" --allowed-tools "Bash(curl:*)" --allowed-tools "Bash(wget:*)" --allowed-tools "Bash(jq:*)"'
         env:
           # Use PAT_TOKEN for gh commands to allow triggering other workflows
           # (CLAUDE_CODE_OAUTH_TOKEN doesn't trigger workflows to prevent infinite loops)

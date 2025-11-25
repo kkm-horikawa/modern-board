@@ -4,13 +4,20 @@
 1. `atomic`ラベルがないIssueを1つ選ぶ
 2. 分解が必要か判断
 3. 必要なら子Issueを作成（1クラス/1メソッド粒度）
-4. 不要なら`atomic`ラベルを付けて終了
-5. このIssueをクローズする
+4. **子Issueに@Claudeメンションして再帰的に分解継続**
+5. 不要なら`atomic`ラベルを付けて終了
+6. このIssueをクローズする
+
+**重要：再帰的分解**
+- 子Issueがまだ`atomic`でない場合、さらに分解が必要
+- 子Issue作成後に@Claudeメンションして自動分解を継続
+- すべての子Issueが`atomic`になるまで繰り返す
 
 **禁止：**
 - ❌ 分析だけで終わる
 - ❌ 複数のIssueに手を出す
 - ❌ 分解判断を保留する
+- ❌ 子Issueをatomicにせず放置する
 
 ---
 
@@ -81,7 +88,17 @@ gh issue comment {N} --body "## 子Issue
 
 全て完了後に\`atomic\`ラベルを付与"
 
-# 6. このIssueをクローズ
+# 6. 子Issueに@Claudeメンションして再帰的に分解継続
+# 子Issueがまだatomicでない場合、さらに分解される
+CHILD_ISSUE_1={子Issue番号1}
+CHILD_ISSUE_2={子Issue番号2}
+CHILD_ISSUE_3={子Issue番号3}
+
+gh issue comment $CHILD_ISSUE_1 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
+gh issue comment $CHILD_ISSUE_2 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
+gh issue comment $CHILD_ISSUE_3 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
+
+# 7. このIssueをクローズ
 gh issue close {THIS_ISSUE} --comment "完了"
 ```
 

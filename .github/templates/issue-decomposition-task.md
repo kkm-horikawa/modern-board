@@ -1,143 +1,82 @@
 ## 📦 Issue分解タスク
 
 **今すぐ実行：**
-1. `atomic`ラベルも`parent`ラベルもないIssueを1つ選ぶ
-2. 分解が必要か判断
-3. 必要なら子Issueを作成（1クラス/1メソッド粒度）+ **以下を自動設定**：
-   - マイルストーン（親と同じ）
-   - プロジェクト（親と同じ）
-   - ブランチ作成＆プッシュ
-   - Draft PR作成
-   - IssueとPRのDevelopment紐付け
-4. **子Issueに@Claudeメンションして再帰的に分解継続**
+1. `atomic`も`parent`もないIssueを1つ選ぶ
+2. 分解が必要か判断（1クラス/1メソッド粒度か？）
+3. 必要なら子Issueを作成（マイルストーン・プロジェクト・ブランチ・PR自動設定）
+4. 子Issueに@Claudeメンションして再帰的分解
 5. 不要なら`atomic`ラベルを付けて終了
-6. このIssueをクローズする
-
-**重要：再帰的分解**
-- 子Issueがまだ`atomic`でない場合、さらに分解が必要
-- 子Issue作成後に@Claudeメンションして自動分解を継続
-- すべての子Issueが`atomic`になるまで繰り返す
 
 **禁止：**
 - ❌ 分析だけで終わる
 - ❌ 複数のIssueに手を出す
-- ❌ 分解判断を保留する
-- ❌ 子Issueをatomicにせず放置する
 
 ---
 
 ## 実行
 
 ```bash
-# 1. 対象Issueを選ぶ（atomicラベルがなく、parentラベルもないもの）
-gh issue list --state open --json number,title,labels \
-  --jq '.[] | select(.labels | map(.name) | contains(["atomic", "parent"]) | not) | .number' \
-  | head -1
+# 1. 対象Issue選択（atomicもparentもないもの）
+TARGET=$(gh issue list --state open --json number,labels \
+  --jq '.[] | select(.labels | map(.name) | contains(["atomic","parent"]) | not) | .number' \
+  | head -1)
 
-# 2. Issue内容を確認して分解判断
-gh issue view {N}
+gh issue view $TARGET
 
-# 判断A: 分解不要（1クラス/1メソッド/定義のみ） → atomicラベルを付ける
-gh issue edit {N} --add-label "atomic"
+# 判断A: 分解不要 → atomicラベル
+gh issue edit $TARGET --add-label "atomic"
 gh issue close {THIS_ISSUE} --comment "完了"
 
-# 判断B: 分解必要 → 以下を実行
+# 判断B: 分解必要 → 以下実行
 
-# 3. 親Issueにラベルとブランチ戦略を追加
-gh issue edit {N} --add-label "parent"
-gh issue comment {N} --body "## ブランチ戦略
+# 2. 親にparentラベル + ブランチ戦略コメント
+gh issue edit $TARGET --add-label "parent"
+gh issue comment $TARGET --body "## ブランチ戦略
+**親ブランチ**: \`claude/parent-issue-${TARGET}-$(date +%Y%m%d-%H%M)\`
+**子PR先**: 親ブランチ → **親PR先**: develop"
 
-**親ブランチ**: \`claude/parent-issue-{N}-$(date +%Y%m%d-%H%M)\`
-**子Issue PR先**: 親ブランチ
-**親Issue PR先**: \`develop\`
-
-全ての子Issueが完了したら親ブランチをdevelopにマージ"
-
-# 4. 子Issueを作成（目標: 実装+テスト1項目+要件1つ）
-# 縦方向分解例: 機能を段階に分割
-
-# 4-1. 親Issueのマイルストーン・プロジェクトを取得
-PARENT_MILESTONE=$(gh issue view {N} --json milestone --jq '.milestone.title')
-PARENT_PROJECT=$(gh issue view {N} --json projectItems --jq '.projectItems[0].project.title')
-
-# 4-2. 子Issueを作成
-CHILD_ISSUE_URL=$(gh issue create \
-  --title "子: {具体的なクラス/メソッド名}" \
-  --body "親Issue: #{N}
+# 3. 子Issue作成（スクリプト使用で自動設定）
+# マイルストーン・プロジェクト・ブランチ・Draft PR・Development紐付けを自動化
+CHILD1=$(.github/scripts/create-child-issue.sh $TARGET \
+  "子: {具体的クラス/メソッド名1}" \
+  "親Issue: #${TARGET}
 
 ## 要件
 - {1つの明確な要件}
 
-## 実装内容
-- {1クラスまたは1メソッドの実装}
+## 実装
+- {1クラス/1メソッド}
 
 ## テスト
-- [ ] {1つの具体的なテストケース}" \
-  --label "child,automation,implementation" \
-  --milestone "$PARENT_MILESTONE")
+- [ ] {1テストケース}")
 
-CHILD_ISSUE_NUMBER=$(echo $CHILD_ISSUE_URL | sed 's|.*/||')
+CHILD2=$(.github/scripts/create-child-issue.sh $TARGET \
+  "子: {具体的クラス/メソッド名2}" \
+  "親Issue: #${TARGET}
 
-# 4-3. プロジェクトに追加
-if [ -n "$PARENT_PROJECT" ]; then
-  gh issue edit $CHILD_ISSUE_NUMBER --add-project "$PARENT_PROJECT"
-fi
+## 要件
+- {1つの明確な要件}
 
-# 4-4. ブランチを作成してプッシュ
-PARENT_BRANCH="claude/parent-issue-{N}-$(date +%Y%m%d-%H%M)"
-CHILD_BRANCH="claude/child-issue-${CHILD_ISSUE_NUMBER}-$(date +%Y%m%d-%H%M)"
-
-git checkout develop && git pull
-git checkout -b "$PARENT_BRANCH" 2>/dev/null || git checkout "$PARENT_BRANCH"
-git push origin "$PARENT_BRANCH" 2>/dev/null || true
-
-git checkout "$PARENT_BRANCH"
-git checkout -b "$CHILD_BRANCH"
-git push -u origin "$CHILD_BRANCH"
-
-# 4-5. Draft PRを作成（IssueとDevelopment紐付け）
-gh pr create \
-  --draft \
-  --head "$CHILD_BRANCH" \
-  --base "$PARENT_BRANCH" \
-  --title "子: {具体的なクラス/メソッド名}" \
-  --body "Closes #${CHILD_ISSUE_NUMBER}
-
-親Issue: #{N}
-
-## 実装内容
-- {1クラスまたは1メソッドの実装}
+## 実装
+- {1クラス/1メソッド}
 
 ## テスト
-- [ ] {1つの具体的なテストケース}"
+- [ ] {1テストケース}")
 
-# 横方向分解例: 関連機能を並列展開
-# （複数の独立したクラス/モジュールなど、上記パターンを繰り返す）
+# 4. 親Issueに子リスト追加
+gh issue comment $TARGET --body "## 子Issue
+- [ ] #${CHILD1}
+- [ ] #${CHILD2}
 
-# 5. 親Issueに子Issueリストを追加
-gh issue comment {N} --body "## 子Issue
+全完了後に\`atomic\`ラベル付与"
 
-- [ ] #{子Issue番号1}
-- [ ] #{子Issue番号2}
-- [ ] #{子Issue番号3}
+# 5. 子に@Claudeメンションして再帰分解
+gh issue comment $CHILD1 --body "@claude 1クラス/1メソッド粒度？(A)適切→atomicラベル (B)粗い→子Issue作成。必ず実行。"
+gh issue comment $CHILD2 --body "@claude 1クラス/1メソッド粒度？(A)適切→atomicラベル (B)粗い→子Issue作成。必ず実行。"
 
-全て完了後に\`atomic\`ラベルを付与"
-
-# 6. 子Issueに@Claudeメンションして再帰的に分解継続
-# 子Issueがまだatomicでない場合、さらに分解される
-CHILD_ISSUE_1={子Issue番号1}
-CHILD_ISSUE_2={子Issue番号2}
-CHILD_ISSUE_3={子Issue番号3}
-
-gh issue comment $CHILD_ISSUE_1 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
-
-gh issue comment $CHILD_ISSUE_2 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
-
-gh issue comment $CHILD_ISSUE_3 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
-
-# 7. このIssueをクローズ
+# 6. 完了
 gh issue close {THIS_ISSUE} --comment "完了"
 ```
 
-**粒度基準**: 1クラス/1メソッド/定義のみ。実装+テスト1項目+要件1つが目安。
-**ブランチ戦略**: 子Issue → 親ブランチ → develop でコンフリクト防止。
+**粒度基準**: 1クラス/1メソッド。実装+テスト1項目+要件1つ。
+**自動設定**: マイルストーン・プロジェクト・ブランチ・Draft PR・Development紐付け。

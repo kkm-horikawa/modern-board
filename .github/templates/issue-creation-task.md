@@ -1,10 +1,10 @@
 ## 📝 新規Issue作成タスク
 
 **今すぐ実行：**
-1. 最近のマージ済みPRを3つ確認
+1. マージ済みPRを3つ確認
 2. バグ・改善点を見つける
-3. 最低2つのIssueを作成
-4. このIssueをクローズ
+3. 最低2つのIssueを作成（マイルストーン・プロジェクト・ブランチ・PR自動設定）
+4. 完了
 
 **禁止：**
 - ❌ 分析だけで終わる
@@ -15,26 +15,37 @@
 ## 実行
 
 ```bash
-# マージ済みPRを確認
+# 1. マージ済みPR確認
 gh pr list --state merged --limit 10
-
-# 各PRを確認してバグ・改善点を探す
 gh pr view {N}
 gh pr diff {N}
 
-# Issue作成（最低2つ）
-gh issue create \
+# 2-3. Issue作成（スクリプトで自動設定）
+# マイルストーン・プロジェクト・ブランチ・Draft PR・Development紐付けを自動化
+
+# デフォルトマイルストーン・プロジェクト（最新のopenマイルストーン、メインプロジェクト）
+MILESTONE=$(gh api repos/{owner}/{repo}/milestones --jq '.[0].title')
+PROJECT="掲示板アプリ開発"  # リポジトリのメインプロジェクト名
+
+ISSUE1=$(gh issue create \
   --title "Bug: {問題}" \
-  --body "PR #{N} で以下の問題を発見。{詳細}" \
-  --label "bug,priority:high"
+  --body "PR #{N}で発見。{詳細}" \
+  --label "bug,priority:high" \
+  --milestone "$MILESTONE")
 
-gh issue create \
+gh issue edit $(echo $ISSUE1 | sed 's|.*/||') --add-project "$PROJECT"
+
+ISSUE2=$(gh issue create \
   --title "Enhancement: {改善}" \
-  --body "PR #{N} で以下の改善が可能。{詳細}" \
-  --label "enhancement,priority:medium"
+  --body "PR #{N}で改善可能。{詳細}" \
+  --label "enhancement,priority:medium" \
+  --milestone "$MILESTONE")
 
-# このIssueをクローズ
+gh issue edit $(echo $ISSUE2 | sed 's|.*/||') --add-project "$PROJECT"
+
+# 4. 完了
 gh issue close {THIS_ISSUE} --comment "2つのIssueを作成"
 ```
 
 **最低2つのIssueを必ず作成してください。**
+**自動設定**: マイルストーン・プロジェクト（ブランチ・PRは実装タスクで作成）

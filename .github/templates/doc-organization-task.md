@@ -1,12 +1,14 @@
 ## 📚 ドキュメント整理タスク
 
+**親Issue**: #{PARENT_ISSUE}
+
 **今すぐ実行：**
-1. 親Issue（DOC-ORG）の前回整理結果を確認
+1. 親Issue #{PARENT_ISSUE} の前回整理結果を確認
 2. ルール違反を検出（配置場所、300行超え、TL;DRなし）
 3. 重複・古いドキュメントを検出
 4. 移動・削除・統合を実行
 5. docs/README.md を更新
-6. 親Issueに最新構造を記録
+6. 親Issue #{PARENT_ISSUE} に最新構造を記録
 7. このIssueをクローズする
 
 **禁止：**
@@ -38,19 +40,8 @@ docs/
 ## 実行
 
 ```bash
-# 1. 親Issueを確認（なければ作成）
-PARENT=$(gh issue list --label "parent,documentation-org" --state all --limit 1 --json number -q '.[0].number')
-
-if [ -z "$PARENT" ]; then
-  PARENT=$(gh issue create \
-    --title "DOC-ORG: ドキュメント整理履歴" \
-    --body "このIssueはドキュメント整理の履歴を記録します。クローズしないでください。" \
-    --label "parent,documentation-org,automation" \
-    --json number -q '.number')
-fi
-
-echo "親Issue: #${PARENT}"
-gh issue view $PARENT
+# 1. 親Issueの前回整理結果を確認
+gh issue view {PARENT_ISSUE}
 
 # 2. ルール違反を検出
 echo "## ルール違反検出" > /tmp/violations.txt
@@ -127,11 +118,11 @@ git add docs/
 git commit -m "docs: ドキュメント整理（ルール違反修正、重複削除、インデックス更新）" || echo "変更なし"
 git push origin develop || git push origin HEAD
 
-# 8. 親Issueに記録
+# 8. 親Issue #{PARENT_ISSUE} に記録
 CURRENT_STRUCTURE=$(find docs/ -name "*.md" | sort)
 CURRENT_HASH=$(echo "$CURRENT_STRUCTURE" | md5sum | cut -d' ' -f1)
 
-gh issue comment $PARENT --body "## $(date +%Y-%m-%d) 整理結果
+gh issue comment {PARENT_ISSUE} --body "## $(date +%Y-%m-%d) 整理結果
 
 **ドキュメント構造ハッシュ**: \`${CURRENT_HASH}\`
 

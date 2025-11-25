@@ -26,14 +26,36 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Ensure parent issue exists
+        run: |
+          # 親Issueを確認（なければ作成）
+          PARENT=$(gh issue list --label "parent,documentation-org" --state all --limit 1 --json number -q '.[0].number')
+
+          if [ -z "$PARENT" ]; then
+            echo "親Issueが存在しないため作成します"
+            PARENT=$(gh issue create \
+              --title "DOC-ORG: ドキュメント整理履歴" \
+              --body "このIssueはドキュメント整理の履歴を記録します。クローズしないでください。" \
+              --label "parent,documentation-org,automation" \
+              --json number -q '.number')
+          fi
+
+          echo "PARENT_ISSUE=$PARENT" >> $GITHUB_ENV
+          echo "親Issue: #${PARENT}"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
       - name: Create documentation organization task
         run: |
           DATE=$(date -u +%Y-%m-%d-%H%M)
 
-          # テンプレートを使ってIssueを作成
+          # テンプレートを読み込んで親Issue番号を置換
+          TEMPLATE=$(cat .github/templates/doc-organization-task.md | sed "s/{PARENT_ISSUE}/${{ env.PARENT_ISSUE }}/g")
+
+          # Issueを作成
           ISSUE_URL=$(gh issue create \
             --title "DOC-ORG-${DATE}: ドキュメント整理タスク" \
-            --body-file .github/templates/doc-organization-task.md \
+            --body "$TEMPLATE" \
             --label "automation,documentation-org")
 
           ISSUE_NUMBER=$(echo $ISSUE_URL | sed 's|.*/||')

@@ -19,10 +19,13 @@
 ## 実行
 
 ```bash
-# 1. Issue選択（優先順位: critical → bug+high → high）
-TARGET=$(gh issue list --state open --label "priority:critical" --limit 1 --json number --jq '.[0].number')
-[ -z "$TARGET" ] && TARGET=$(gh issue list --state open --label "bug,priority:high" --limit 1 --json number --jq '.[0].number')
-[ -z "$TARGET" ] && TARGET=$(gh issue list --state open --label "priority:high" --limit 1 --json number --jq '.[0].number')
+# 1. Issue選択（優先順位: critical → bug+high → high、マイルストーン番号が最小）
+TARGET=$(gh issue list --state open --label "priority:critical" --json number,milestone \
+  --jq 'sort_by(.milestone.number // 999) | .[0].number')
+[ -z "$TARGET" ] && TARGET=$(gh issue list --state open --label "bug,priority:high" --json number,milestone \
+  --jq 'sort_by(.milestone.number // 999) | .[0].number')
+[ -z "$TARGET" ] && TARGET=$(gh issue list --state open --label "priority:high" --json number,milestone \
+  --jq 'sort_by(.milestone.number // 999) | .[0].number')
 
 gh issue view $TARGET
 

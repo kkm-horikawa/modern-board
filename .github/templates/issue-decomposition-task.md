@@ -18,10 +18,11 @@
 ## 実行
 
 ```bash
-# 1. 対象Issue選択（atomicもparentもないもの）
-TARGET=$(gh issue list --state open --json number,labels \
-  --jq '.[] | select(.labels | map(.name) | contains(["atomic","parent"]) | not) | .number' \
-  | head -1)
+# 1. 対象Issue選択（atomicもparentもない、マイルストーン番号が最小のもの）
+TARGET=$(gh issue list --state open --json number,labels,milestone \
+  --jq 'map(select(.labels | map(.name) | contains(["atomic","parent"]) | not))
+        | sort_by(.milestone.number // 999)
+        | .[0].number')
 
 gh issue view $TARGET
 

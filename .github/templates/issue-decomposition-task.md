@@ -3,7 +3,12 @@
 **今すぐ実行：**
 1. `atomic`ラベルも`parent`ラベルもないIssueを1つ選ぶ
 2. 分解が必要か判断
-3. 必要なら子Issueを作成（1クラス/1メソッド粒度）
+3. 必要なら子Issueを作成（1クラス/1メソッド粒度）+ **以下を自動設定**：
+   - マイルストーン（親と同じ）
+   - プロジェクト（親と同じ）
+   - ブランチ作成＆プッシュ
+   - Draft PR作成
+   - IssueとPRのDevelopment紐付け
 4. **子Issueに@Claudeメンションして再帰的に分解継続**
 5. 不要なら`atomic`ラベルを付けて終了
 6. このIssueをクローズする
@@ -50,7 +55,13 @@ gh issue comment {N} --body "## ブランチ戦略
 
 # 4. 子Issueを作成（目標: 実装+テスト1項目+要件1つ）
 # 縦方向分解例: 機能を段階に分割
-gh issue create \
+
+# 4-1. 親Issueのマイルストーン・プロジェクトを取得
+PARENT_MILESTONE=$(gh issue view {N} --json milestone --jq '.milestone.title')
+PARENT_PROJECT=$(gh issue view {N} --json projectItems --jq '.projectItems[0].project.title')
+
+# 4-2. 子Issueを作成
+CHILD_ISSUE_URL=$(gh issue create \
   --title "子: {具体的なクラス/メソッド名}" \
   --body "親Issue: #{N}
 
@@ -61,23 +72,47 @@ gh issue create \
 - {1クラスまたは1メソッドの実装}
 
 ## テスト
-- [ ] {1つの具体的なテストケース}
+- [ ] {1つの具体的なテストケース}" \
+  --label "child,automation,implementation" \
+  --milestone "$PARENT_MILESTONE")
 
-## ブランチ戦略
-\`\`\`bash
+CHILD_ISSUE_NUMBER=$(echo $CHILD_ISSUE_URL | sed 's|.*/||')
+
+# 4-3. プロジェクトに追加
+if [ -n "$PARENT_PROJECT" ]; then
+  gh issue edit $CHILD_ISSUE_NUMBER --add-project "$PARENT_PROJECT"
+fi
+
+# 4-4. ブランチを作成してプッシュ
+PARENT_BRANCH="claude/parent-issue-{N}-$(date +%Y%m%d-%H%M)"
+CHILD_BRANCH="claude/child-issue-${CHILD_ISSUE_NUMBER}-$(date +%Y%m%d-%H%M)"
+
 git checkout develop && git pull
-git checkout -b claude/parent-issue-{N}-$(date +%Y%m%d-%H%M)
-git push origin HEAD
+git checkout -b "$PARENT_BRANCH" 2>/dev/null || git checkout "$PARENT_BRANCH"
+git push origin "$PARENT_BRANCH" 2>/dev/null || true
 
-# 子Issue用ブランチ（親ブランチから切る）
-git checkout claude/parent-issue-{N}-YYYYMMDD-HHMM
-git checkout -b claude/child-issue-{M}-$(date +%Y%m%d-%H%M)
-# PR先: claude/parent-issue-{N}-YYYYMMDD-HHMM
-\`\`\`" \
-  --label "child,automation,implementation"
+git checkout "$PARENT_BRANCH"
+git checkout -b "$CHILD_BRANCH"
+git push -u origin "$CHILD_BRANCH"
+
+# 4-5. Draft PRを作成（IssueとDevelopment紐付け）
+gh pr create \
+  --draft \
+  --head "$CHILD_BRANCH" \
+  --base "$PARENT_BRANCH" \
+  --title "子: {具体的なクラス/メソッド名}" \
+  --body "Closes #${CHILD_ISSUE_NUMBER}
+
+親Issue: #{N}
+
+## 実装内容
+- {1クラスまたは1メソッドの実装}
+
+## テスト
+- [ ] {1つの具体的なテストケース}"
 
 # 横方向分解例: 関連機能を並列展開
-# （複数の独立したクラス/モジュールなど、同じパターンで複数作成）
+# （複数の独立したクラス/モジュールなど、上記パターンを繰り返す）
 
 # 5. 親Issueに子Issueリストを追加
 gh issue comment {N} --body "## 子Issue

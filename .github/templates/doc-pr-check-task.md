@@ -97,10 +97,15 @@ gh issue create \
 
 DOC_ISSUE=\$(gh issue list --label "documentation" --limit 1 --json number -q '.[0].number')
 
+# サブIssueに@Claudeメンションしてすぐ実行開始
+gh issue comment $DOC_ISSUE --body "@claude このIssueの説明に記載されたドキュメント作成タスクを実行してください。"
+
 # PRにコメント
 gh pr comment {PR_NUMBER} --body "📝 ドキュメント作成が必要です: #${DOC_ISSUE}
 
-このPRをマージする前に、ドキュメントIssue #${DOC_ISSUE} をクローズしてください。"
+このPRをマージする前に、ドキュメントIssue #${DOC_ISSUE} をクローズしてください。
+
+@claude がドキュメント作成を開始しました。"
 
 # このIssueをクローズ
 gh issue close {THIS_ISSUE} --comment "完了"

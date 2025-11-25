@@ -94,9 +94,11 @@ CHILD_ISSUE_1={子Issue番号1}
 CHILD_ISSUE_2={子Issue番号2}
 CHILD_ISSUE_3={子Issue番号3}
 
-gh issue comment $CHILD_ISSUE_1 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
-gh issue comment $CHILD_ISSUE_2 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
-gh issue comment $CHILD_ISSUE_3 --body "@claude このIssueが1クラス/1メソッド粒度でない場合、さらに分解してください。粒度が適切ならatomicラベルを付けてください。"
+gh issue comment $CHILD_ISSUE_1 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
+
+gh issue comment $CHILD_ISSUE_2 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
+
+gh issue comment $CHILD_ISSUE_3 --body "@claude このIssueが1クラス/1メソッド粒度か判断し、(A)粒度が適切→atomicラベル付与、(B)まだ粗い→必ず子Issue作成して分解実行。禁止：推奨だけで終わる、分析だけで終わる。必ずatomicラベル付与または子Issue作成を実行してください。"
 
 # 7. このIssueをクローズ
 gh issue close {THIS_ISSUE} --comment "完了"

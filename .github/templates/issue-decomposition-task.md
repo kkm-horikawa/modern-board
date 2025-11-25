@@ -8,7 +8,9 @@
 5. 不要なら`atomic`ラベルを付けて終了
 
 **禁止：**
-- ❌ 分析だけで終わる
+- ❌ 分析・推奨・説明だけで終わる
+- ❌ 「〇〇すべき」「推奨します」で終わる
+- ❌ コマンド実行しない
 - ❌ 複数のIssueに手を出す
 
 ---
@@ -71,8 +73,8 @@ gh issue comment $TARGET --body "## 子Issue
 全完了後に\`atomic\`ラベル付与"
 
 # 5. 子に@Claudeメンションして再帰分解
-gh issue comment $CHILD1 --body "@claude 1クラス/1メソッド粒度？(A)適切→atomicラベル (B)粗い→子Issue作成。必ず実行。"
-gh issue comment $CHILD2 --body "@claude 1クラス/1メソッド粒度？(A)適切→atomicラベル (B)粗い→子Issue作成。必ず実行。"
+gh issue comment $CHILD1 --body "@claude 判断後に即実行：(A)粒度OK→\`gh issue edit {N} --add-label atomic\`実行 (B)粗い→子Issue作成実行。禁止：分析だけ、推奨だけ、説明だけ。コマンド実行のみ。"
+gh issue comment $CHILD2 --body "@claude 判断後に即実行：(A)粒度OK→\`gh issue edit {N} --add-label atomic\`実行 (B)粗い→子Issue作成実行。禁止：分析だけ、推奨だけ、説明だけ。コマンド実行のみ。"
 
 # 6. 完了
 gh issue close {THIS_ISSUE} --comment "完了"

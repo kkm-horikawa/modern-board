@@ -18,10 +18,11 @@
 ## 実行
 
 ```bash
-# 1. 対象Issue選択（atomicもparentもないもの）
-TARGET=$(gh issue list --state open --json number,labels \
-  --jq '.[] | select(.labels | map(.name) | contains(["atomic","parent"]) | not) | .number' \
-  | head -1)
+# 1. 対象Issue選択（atomicもparentもない、マイルストーン番号が最小のもの）
+TARGET=$(gh issue list --state open --limit 100 --json number,labels,milestone \
+  --jq 'map(select(.labels | map(.name) | contains(["atomic","parent"]) | not))
+        | sort_by(.milestone.number // 999)
+        | .[0].number')
 
 gh issue view $TARGET
 
@@ -31,13 +32,30 @@ gh issue close {THIS_ISSUE} --comment "完了"
 
 # 判断B: 分解必要 → 以下実行
 
-# 2. 親にparentラベル + ブランチ戦略コメント
+# 2. 親Issueの設定確認・補完
+# マイルストーン未設定なら最新openマイルストーンを設定
+MILESTONE=$(gh issue view $TARGET --json milestone --jq '.milestone.title')
+if [ -z "$MILESTONE" ] || [ "$MILESTONE" = "null" ]; then
+  DEFAULT_MILESTONE=$(gh api repos/{owner}/{repo}/milestones --jq '[.[] | select(.state=="open")] | .[0].title')
+  gh issue edit $TARGET --milestone "$DEFAULT_MILESTONE"
+fi
+
+# プロジェクト未設定ならメインプロジェクトに追加
+PROJECT=$(gh issue view $TARGET --json projectItems --jq '.projectItems[0].project.title')
+if [ -z "$PROJECT" ] || [ "$PROJECT" = "null" ]; then
+  gh issue edit $TARGET --add-project "掲示板アプリ開発"
+fi
+
+# リレーション・PR確認をClaudeに依頼
+gh issue comment $TARGET --body "@claude 未設定なら即実行：1.親Issue参照（本文に親Issue: #N追加）2.Draft PR（なければ作成）禁止：分析だけ。"
+
+# 3. 親にparentラベル + ブランチ戦略コメント
 gh issue edit $TARGET --add-label "parent"
 gh issue comment $TARGET --body "## ブランチ戦略
 **親ブランチ**: \`claude/parent-issue-${TARGET}-$(date +%Y%m%d-%H%M)\`
 **子PR先**: 親ブランチ → **親PR先**: develop"
 
-# 3. 子Issue作成（スクリプト使用で自動設定）
+# 4. 子Issue作成（スクリプト使用で自動設定）
 # マイルストーン・プロジェクト・ブランチ・Draft PR・Development紐付けを自動化
 CHILD1=$(.github/scripts/create-child-issue.sh $TARGET \
   "子: {具体的クラス/メソッド名1}" \
@@ -65,18 +83,18 @@ CHILD2=$(.github/scripts/create-child-issue.sh $TARGET \
 ## テスト
 - [ ] {1テストケース}")
 
-# 4. 親Issueに子リスト追加
+# 5. 親Issueに子リスト追加
 gh issue comment $TARGET --body "## 子Issue
 - [ ] #${CHILD1}
 - [ ] #${CHILD2}
 
 全完了後に\`atomic\`ラベル付与"
 
-# 5. 子に@Claudeメンションして再帰分解
+# 6. 子に@Claudeメンションして再帰分解
 gh issue comment $CHILD1 --body "@claude 判断後に即実行：(A)粒度OK→\`gh issue edit {N} --add-label atomic\`実行 (B)粗い→子Issue作成実行。禁止：分析だけ、推奨だけ、説明だけ。コマンド実行のみ。"
 gh issue comment $CHILD2 --body "@claude 判断後に即実行：(A)粒度OK→\`gh issue edit {N} --add-label atomic\`実行 (B)粗い→子Issue作成実行。禁止：分析だけ、推奨だけ、説明だけ。コマンド実行のみ。"
 
-# 6. 完了
+# 7. 完了
 gh issue close {THIS_ISSUE} --comment "完了"
 ```
 
